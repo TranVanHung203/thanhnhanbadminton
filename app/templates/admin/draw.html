@@ -23,13 +23,13 @@
       <div class="draw-task-tabs" data-draw-task-tabs>
         {% for task in awards.draws %}<button type="button" class="{{ 'active' if loop.first }}" data-draw-task="{{ task.key }}"><span>{{ loop.index }}</span>{{ task.award_title }}<small>{{ task.slots }} suất còn lại</small></button>{% endfor %}
       </div>
-      <div class="wheel-stage">
+      <button class="wheel-stage wheel-trigger" type="button" data-spin-wheel aria-label="Chạm để quay bốc thăm">
         <div class="wheel-pointer" aria-hidden="true"><i></i><b></b></div>
         <canvas width="720" height="720" data-prize-wheel aria-label="Vòng quay bốc thăm"></canvas>
-        <div class="wheel-center"><img src="{{ url_for('public.brand_logo') }}" alt=""><span>THÀNH NHÂN</span></div>
-      </div>
+        <div class="wheel-center"><img src="{{ url_for('public.brand_logo') }}" alt=""></div>
+      </button>
       <div class="wheel-copy"><small data-draw-award></small><h2 data-draw-title></h2><p data-draw-description></p></div>
-      <button class="button spin-button" type="button" data-spin-wheel><span class="shuttle-mini">◒</span> QUAY BỐC THĂM</button>
+      <p class="wheel-tap-hint" data-spin-status>Chạm vào vòng quay để bắt đầu</p>
       <p class="draw-integrity">Kết quả được chọn ngẫu nhiên ở máy chủ và lưu vào MongoDB trước khi hoạt ảnh bắt đầu.</p>
     </div>
 

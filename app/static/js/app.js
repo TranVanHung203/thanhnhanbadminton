@@ -148,6 +148,7 @@ if (drawApp) {
   const canvas = drawApp.querySelector('[data-prize-wheel]');
   const context = canvas.getContext('2d');
   const spinButton = drawApp.querySelector('[data-spin-wheel]');
+  const spinStatus = drawApp.querySelector('[data-spin-status]');
   const taskTitle = drawApp.querySelector('[data-draw-title]');
   const taskAward = drawApp.querySelector('[data-draw-award]');
   const taskDescription = drawApp.querySelector('[data-draw-description]');
@@ -278,7 +279,7 @@ if (drawApp) {
     spinning = true;
     spinButton.disabled = true;
     spinButton.classList.add('spinning');
-    spinButton.textContent = 'ĐANG XÁC ĐỊNH KẾT QUẢ...';
+    spinStatus.textContent = 'Đang xác định kết quả...';
     try {
       const response = await fetch('/admin/boc-tham/quay', {
         method: 'POST',
@@ -297,7 +298,7 @@ if (drawApp) {
       spinning = false;
       spinButton.disabled = false;
       spinButton.classList.remove('spinning');
-      spinButton.textContent = 'QUAY BỐC THĂM';
+      spinStatus.textContent = 'Chạm vào vòng quay để thử lại';
     }
   });
   document.querySelector('[data-finish-draw]')?.addEventListener('click', () => window.location.reload());

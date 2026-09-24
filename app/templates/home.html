@@ -45,7 +45,7 @@
             <td><span class="rank rank-{{ row.rank if row.rank < 4 else 'other' }}">{{ row.rank }}</span></td>
             <td><b>{{ row.name }}</b><small>{{ row.official_wins }} thắng · {{ row.official_losses }} thua</small></td>
             <td>{{ row.official_matches }}/3</td><td><b>{{ row.official_points }}</b></td><td>{{ row.stars }}</td><td>{{ row.flowers }}</td><td><b>{{ row.total_points }}</b></td>
-            <td>{% if row.tie_status == 'final_round' %}<span class="tag tag-warn">Cần vòng phân hạng</span>{% elif row.tied %}<span class="tag tag-warn">Đồng thành tích</span>{% elif row.award %}<span class="tag">{{ row.award }}</span>{% else %}<span class="tag tag-muted">Đang thi đấu</span>{% endif %}</td>
+            <td>{% if row.award_status in ('final_round', 'final_tiebreak') %}<span class="tag tag-warn">{{ 'Cần vòng phân hạng' if row.award_status == 'final_round' else 'Chờ phân định' }}</span>{% elif row.award_status in ('draw_second', 'draw_third', 'draw_multiple') %}<span class="tag tag-warn">Chờ bốc thăm</span>{% elif row.award_status == 'waiting_ranking' %}<span class="tag tag-muted">Chờ phân hạng</span>{% elif row.award %}<span class="tag">{{ row.award }}</span>{% elif row.tied %}<span class="tag tag-warn">Đồng thành tích</span>{% else %}<span class="tag tag-muted">Đang thi đấu</span>{% endif %}</td>
           </tr>
         {% endfor %}
         </tbody>
