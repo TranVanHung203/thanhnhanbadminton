@@ -258,12 +258,29 @@ def google_callback():
 
     try:
         flow = create_authorization_flow(state=expected_state)
-        flow.fetch_token(authorization_response=request.url)
+        # Render kết thúc TLS ở reverse proxy nên request.url đôi khi bị Flask
+        # nhận thành http://. Dùng URI HTTPS đã cấu hình để OAuth token exchange
+        # luôn khớp tuyệt đối với redirect_uri đã gửi cho Google.
+        callback_url = current_app.config["GOOGLE_OAUTH_REDIRECT_URI"]
+        if request.query_string:
+            callback_url = f"{callback_url}?{request.query_string.decode('ascii')}"
+        flow.fetch_token(authorization_response=callback_url)
         save_credentials(flow.credentials)
         flash("Đã kết nối Google Drive. Người dùng có thể tải ảnh minh chứng trực tiếp.", "success")
     except Exception as exc:
         current_app.logger.exception("Kết nối Google Drive thất bại: %s", exc)
-        flash("Kết nối Google Drive thất bại. Hãy kiểm tra Redirect URI và thử lại.", "error")
+        error_text = str(exc).lower()
+        if "invalid_client" in error_text:
+            message = "Google từ chối Client ID hoặc Client Secret. Hãy kiểm tra biến môi trường trên Render."
+        elif "invalid_grant" in error_text:
+            message = "Mã xác thực Google đã hết hạn hoặc đã được dùng. Hãy kết nối lại từ đầu."
+        elif "redirect_uri" in error_text:
+            message = "Redirect URI chưa khớp chính xác giữa Render và Google Cloud."
+        elif "insecure_transport" in error_text:
+            message = "Máy chủ chưa nhận diện kết nối HTTPS. Hãy deploy phiên bản mới nhất."
+        else:
+            message = "Kết nối Google Drive thất bại. Hãy xem Logs trên Render để biết chi tiết."
+        flash(message, "error")
     return redirect(url_for("admin.dashboard"))
 
 
