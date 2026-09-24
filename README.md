@@ -33,6 +33,24 @@ Mở `http://127.0.0.1:5000`. Các biến cần cấu hình trong `.env`:
 - `SECRET_KEY`: khóa phiên đăng nhập.
 - `ADMIN_PASSWORD`: mật khẩu trang `/admin`.
 
+## Google Drive trên Render
+
+Không đưa file OAuth hoặc token lên Git. Trên Render, cấu hình các biến:
+
+- `GOOGLE_OAUTH_CLIENT_ID`: Client ID của OAuth Web application.
+- `GOOGLE_OAUTH_CLIENT_SECRET`: Client secret tương ứng.
+- `GOOGLE_OAUTH_PROJECT_ID`: Project ID trên Google Cloud (không bắt buộc).
+- `GOOGLE_OAUTH_REDIRECT_URI`: `https://TEN-DICH-VU.onrender.com/admin/google/callback`.
+- `GOOGLE_DRIVE_FOLDER_NAME`: tên thư mục lưu ảnh trên Drive.
+
+Cũng có thể dùng `GOOGLE_OAUTH_CLIENT_JSON` chứa toàn bộ JSON OAuth dạng thường
+hoặc base64 thay cho hai biến client ID/client secret. URL callback phải được
+thêm chính xác vào **Authorized redirect URIs** trong Google Cloud Console.
+
+Sau lần kết nối đầu tiên tại trang quản trị, refresh token được lưu trong
+collection `app_settings` của MongoDB nên không bị mất khi Render restart hoặc
+deploy lại.
+
 ## Quy tắc đã mã hóa
 
 - Vòng bảng ngày 1–21; vòng phân hạng từ ngày 22 đến cuối tháng.

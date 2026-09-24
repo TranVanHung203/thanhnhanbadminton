@@ -21,6 +21,12 @@ class Config:
     GOOGLE_OAUTH_CLIENT_FILE = os.getenv(
         "GOOGLE_OAUTH_CLIENT_FILE", str(ROOT / "google-oauth.json.json")
     )
+    # Trên Render không commit file OAuth. Có thể truyền toàn bộ JSON hoặc
+    # chỉ truyền client ID/client secret bằng biến môi trường.
+    GOOGLE_OAUTH_CLIENT_JSON = os.getenv("GOOGLE_OAUTH_CLIENT_JSON", "")
+    GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+    GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+    GOOGLE_OAUTH_PROJECT_ID = os.getenv("GOOGLE_OAUTH_PROJECT_ID", "")
     GOOGLE_TOKEN_FILE = os.getenv(
         "GOOGLE_TOKEN_FILE", str(ROOT / ".artifacts" / "google-drive-token.json")
     )
