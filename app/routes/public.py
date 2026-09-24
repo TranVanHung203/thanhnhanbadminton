@@ -52,7 +52,15 @@ def submit_result():
         season = {"locked": False}
     if season.get("locked"):
         abort(423)
-    return render_template("submit.html", month=month)
+    return render_template(
+        "submit.html",
+        month=month,
+        meta_title="Nhập kết quả thi đấu · Thành Nhân Badminton",
+        meta_description=(
+            "Gửi kết quả và ảnh minh chứng trận đấu của Giải cầu lông "
+            "Thành Nhân hằng tháng."
+        ),
+    )
 
 
 @public_bp.route("/ket-qua")
