@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Quản trị · Thành Nhân Badminton{% endblock %}
+{% block content %}
+<section class="admin-hero"><div class="section-shell"><div><div class="eyebrow light"><span></span> BẢNG ĐIỀU KHIỂN BTC</div><h1>Quản lý mùa giải <em>{{ month[5:7] }}/{{ month[:4] }}</em></h1></div><div class="admin-actions"><a class="button draw-admin-button" href="{{ url_for('admin.draw_awards', month=month) }}">Vòng quay bốc thăm{% if awards.draws %}<span>{{ awards.draws|length }}</span>{% endif %}</a><form method="post" action="{{ url_for('admin.toggle_lock', month=month) }}"><button class="button {{ 'button-ghost-light' if season.locked else 'button-danger' }}" type="submit">{{ 'Mở lại mùa giải' if season.locked else 'Khóa mùa giải' }}</button></form><form method="post" action="{{ url_for('admin.logout') }}"><button class="text-button light" type="submit">Đăng xuất</button></form></div></div></section>
+<section class="section-shell admin-content">
+  <div class="admin-stats"><article><span>Chờ duyệt</span><strong>{{ stats.pending_matches }}</strong></article><article><span>Đã duyệt</span><strong>{{ stats.approved_matches }}</strong></article><article><span>Người thi đấu</span><strong>{{ stats.players }}</strong></article><article><span>Trạng thái tháng</span><strong class="status-word">{{ 'ĐÃ KHÓA' if season.locked else 'ĐANG MỞ' }}</strong></article></div>
+  <div class="drive-card {{ 'connected' if drive.connected else 'disconnected' }}">
+    <div>
+      <span class="drive-status-dot"></span>
+      <div>
+        <small>LƯU ẢNH MINH CHỨNG</small>
+        <h2>{{ 'Google Drive đã kết nối' if drive.connected else 'Google Drive chưa kết nối' }}</h2>
+        <p>{% if drive.connected %}Ảnh người dùng chọn sẽ tự động lưu theo thư mục tháng trên Google Drive.{% elif drive.client_ready %}File OAuth đã sẵn sàng. Hãy cấp quyền một lần cho tài khoản Drive dùng để lưu ảnh.{% else %}Chưa tìm thấy file cấu hình OAuth trên máy chủ.{% endif %}</p>
+      </div>
+    </div>
+    {% if drive.client_ready %}<a class="button {{ 'button-ghost' if drive.connected else 'button-primary' }}" href="{{ url_for('admin.google_connect') }}">{{ 'Kết nối lại' if drive.connected else 'Kết nối Google Drive' }}</a>{% endif %}
+  </div>
+  <div class="admin-awards-summary">
+    <div class="admin-awards-title"><div><small>THỐNG KÊ KHEN THƯỞNG</small><h2>Danh hiệu {{ awards.status_label|lower }} tháng {{ month[5:7] }}/{{ month[:4] }}</h2></div><div class="admin-award-links"><a href="{{ url_for('admin.draw_awards', month=month) }}">Bốc thăm{% if awards.draws %} ({{ awards.draws|length }}){% endif %}</a><a href="{{ url_for('public.results', month=month, tab='awards') }}">Xem đầy đủ →</a></div></div>
+    <div class="admin-awards-grid">
+      {% for item in awards.attitude['items'] %}<article><span>{{ loop.index }}</span><div><small>{{ item.title }}</small>{% if item.recipients %}<b>{% for person in item.recipients %}{{ person.name }}{{ ', ' if not loop.last }}{% endfor %}</b>{% elif item.candidates %}<b class="pending-text">Chờ bốc thăm: {% for person in item.candidates %}{{ person.name }}{{ ', ' if not loop.last }}{% endfor %}</b>{% else %}<b class="muted-text">{{ item.note }}</b>{% endif %}</div></article>{% endfor %}
+    </div>
+  </div>
+  <div class="admin-toolbar"><form method="get" class="calendar-picker compact-picker" data-month-picker><input type="hidden" name="month" value="{{ month }}" data-month-value><select data-month-number>{% for number in range(1,13) %}<option value="{{ '%02d'|format(number) }}" {{ 'selected' if month[5:7] == '%02d'|format(number) }}>Tháng {{ number }}</option>{% endfor %}</select><input type="number" min="1900" max="9999" value="{{ month[:4] }}" aria-label="Năm" data-month-year><select name="status" data-auto-submit><option value="all">Tất cả trạng thái</option><option value="pending" {{ 'selected' if status == 'pending' }}>Chờ duyệt</option><option value="approved" {{ 'selected' if status == 'approved' }}>Đã duyệt</option><option value="rejected" {{ 'selected' if status == 'rejected' }}>Từ chối</option></select><button class="mini-button approve" type="submit">Xem</button></form><span>{{ matches|length }} bản ghi</span></div>
+  <div class="admin-list">
+  {% for match in matches %}
+    <article class="admin-match">
+      <div class="admin-match-main"><span class="status-dot {{ match.status }}"></span><div><small>{{ match.match_code }} · {{ match.played_date }} {{ match.played_time }}</small><h3>{{ match.player_a }} <span>vs</span> {{ match.player_b }}</h3><p>Trọng tài: {{ match.referee_1 }}, {{ match.referee_2 }} · {{ 'Vòng bảng' if match.stage == 'group' else 'Vòng phân hạng' }}</p></div><div class="admin-score">{% for set in match.sets %}<b>{{ set.a }}–{{ set.b }}</b>{% endfor %}</div></div>
+      {% if match.evidence_urls %}<div class="evidence-links">{% for url in match.evidence_urls %}<a href="{{ url }}" target="_blank" rel="noopener">Minh chứng {{ loop.index }} ↗</a>{% endfor %}</div>{% endif %}
+      {% if match.admin_note %}<p class="admin-note"><b>Ghi chú BTC:</b> {{ match.admin_note }}</p>{% endif %}
+      <div class="admin-match-actions">
+        {% if match.status != 'approved' %}<form method="post" action="{{ url_for('admin.approve', match_id=match._id) }}"><input name="admin_note" placeholder="Ghi chú duyệt (không bắt buộc)"><button class="mini-button approve">Duyệt trận</button></form>{% endif %}
+        {% if match.status != 'rejected' %}<form method="post" action="{{ url_for('admin.reject', match_id=match._id) }}"><input name="admin_note" placeholder="Lý do từ chối"><button class="mini-button reject">Từ chối</button></form>{% endif %}
+        <form method="post" action="{{ url_for('admin.delete', match_id=match._id) }}" onsubmit="return confirm('Xóa vĩnh viễn bản ghi {{ match.match_code }}?')"><button class="mini-button delete">Xóa</button></form>
+      </div>
+    </article>
+  {% else %}<div class="empty-state"><h3>Không có bản ghi phù hợp</h3><p>Thử chọn trạng thái hoặc tháng khác.</p></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Tổng quan · Thành Nhân Badminton{% endblock %}
+{% block content %}
+<section class="hero section-shell">
+  <div class="hero-copy">
+    <div class="eyebrow"><span></span> MÙA GIẢI {{ month[5:7] }}/{{ month[:4] }}</div>
+    <h1>Thi đấu hết mình.<br><em>Ghi nhận công bằng.</em></h1>
+    <p>Theo dõi hành trình thi đấu, cập nhật kết quả và bảng xếp hạng của giải cầu lông Thành Nhân trong một giao diện rõ ràng.</p>
+    <div class="hero-actions">
+      <a class="button button-primary" href="{{ url_for('public.submit_result', month=month) }}">Nhập kết quả trận đấu <span>↗</span></a>
+      <a class="button button-ghost" href="{{ url_for('public.results', month=month) }}">Xem bảng xếp hạng</a>
+    </div>
+    {% if season.locked %}<div class="lock-note">● Mùa giải đã khóa — kết quả hiện là dữ liệu công bố.</div>{% endif %}
+    {% if db_error %}<div class="error-note">{{ db_error }}</div>{% endif %}
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="court-lines"><i></i><i></i><i></i></div>
+    <div class="shuttle"><span></span><span></span><span></span><b></b></div>
+    <div class="month-stamp"><small>SEASON</small><strong>{{ month[5:7] }}</strong><span>{{ month[:4] }}</span></div>
+  </div>
+</section>
+
+<section class="stats-band">
+  <div class="section-shell stats-grid">
+    <article><small>TRẬN ĐÃ DUYỆT</small><strong>{{ stats.approved_matches }}</strong><span>trận hợp lệ trong tháng</span></article>
+    <article><small>VẬN ĐỘNG VIÊN</small><strong>{{ stats.players }}</strong><span>người đã thi đấu</span></article>
+    <article><small>HOA ĐỒNG HÀNH</small><strong>{{ stats.flowers }}</strong><span>lượt hỗ trợ trọng tài</span></article>
+    <article class="accent-stat"><small>CHỜ XÁC NHẬN</small><strong>{{ stats.pending_matches }}</strong><span>bản ghi đang chờ BTC</span></article>
+  </div>
+</section>
+
+<section class="section-shell content-section">
+  <div class="section-heading">
+    <div><span class="section-index">01</span><h2>Bảng xếp hạng tháng</h2><p>Điểm chính thức, sao thi đấu và hoa đồng hành được cập nhật từ các trận đã duyệt.</p></div>
+    <a href="{{ url_for('public.results', month=month) }}">Xem toàn bộ ↗</a>
+  </div>
+  {% if rankings %}
+  <div class="leaderboard-card">
+    <div class="table-scroll">
+      <table class="leaderboard">
+        <thead><tr><th>Hạng</th><th>Vận động viên</th><th>Trận CT</th><th>Điểm</th><th>Sao</th><th>Hoa</th><th>Tổng điểm</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+        {% for row in rankings %}
+          <tr>
+            <td><span class="rank rank-{{ row.rank if row.rank < 4 else 'other' }}">{{ row.rank }}</span></td>
+            <td><b>{{ row.name }}</b><small>{{ row.official_wins }} thắng · {{ row.official_losses }} thua</small></td>
+            <td>{{ row.official_matches }}/3</td><td><b>{{ row.official_points }}</b></td><td>{{ row.stars }}</td><td>{{ row.flowers }}</td><td><b>{{ row.total_points }}</b></td>
+            <td>{% if row.tie_status == 'final_round' %}<span class="tag tag-warn">Cần vòng phân hạng</span>{% elif row.tied %}<span class="tag tag-warn">Đồng thành tích</span>{% elif row.award %}<span class="tag">{{ row.award }}</span>{% else %}<span class="tag tag-muted">Đang thi đấu</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}<div class="empty-state"><span>⌁</span><h3>Chưa có kết quả được duyệt</h3><p>Hãy gửi trận đầu tiên của tháng để bắt đầu bảng xếp hạng.</p></div>{% endif %}
+</section>
+
+<section class="section-shell content-section two-columns">
+  <div>
+    <div class="section-heading compact"><div><span class="section-index">02</span><h2>Trận gần nhất</h2></div></div>
+    <div class="match-list">
+      {% for match in recent %}
+      <article class="match-row">
+        <div class="match-date"><b>{{ match.played_date[8:10] }}</b><small>TH {{ match.played_date[5:7] }}</small></div>
+        <div class="match-players"><b>{{ match.player_a }}</b><span>vs</span><b>{{ match.player_b }}</b><small>{{ 'Vòng bảng' if match.stage == 'group' else 'Vòng phân hạng' }} · {{ match.played_time }}</small></div>
+        <div class="match-score">
+          {% for set in match.sets %}<span>{{ set.a }}–{{ set.b }}</span>{% endfor %}
+        </div>
+      </article>
+      {% else %}<div class="empty-inline">Chưa có trận được duyệt trong tháng này.</div>{% endfor %}
+    </div>
+  </div>
+  <aside class="rules-summary">
+    <span class="section-index light">03</span><h2>Nhịp giải đấu</h2>
+    <ol>
+      <li><b>Ngày 01–21</b><span>Vòng bảng, tích lũy 3 trận chính thức và tối đa 5 trận không chính thức.</span></li>
+      <li><b>Từ ngày 22</b><span>Vòng phân hạng cho nhóm đồng thành tích cao nhất.</span></li>
+      <li><b>Cuối tháng</b><span>BTC khóa dữ liệu, công bố thứ hạng và xét thưởng.</span></li>
+    </ol>
+    <a href="{{ url_for('public.rules') }}">Đọc thể lệ đầy đủ →</a>
+  </aside>
+</section>
+{% endblock %}

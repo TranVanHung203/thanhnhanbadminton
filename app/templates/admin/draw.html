@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Bốc thăm giải thưởng · Thành Nhân Badminton{% endblock %}
+{% block content %}
+<section class="admin-hero draw-hero">
+  <div class="section-shell">
+    <div><div class="eyebrow light"><span></span> CÔNG CỤ BAN TỔ CHỨC</div><h1>Bốc thăm giải thưởng <em>{{ month[5:7] }}/{{ month[:4] }}</em></h1></div>
+    <div class="admin-actions"><a class="button button-ghost-light" href="{{ url_for('admin.dashboard', month=month) }}">← Về quản trị</a></div>
+  </div>
+</section>
+
+<section class="section-shell draw-page">
+  <form class="calendar-picker draw-month-picker" method="get" data-month-picker>
+    <input type="hidden" name="month" value="{{ month }}" data-month-value>
+    <label><span>Tháng</span><select data-month-number>{% for number in range(1,13) %}<option value="{{ '%02d'|format(number) }}" {{ 'selected' if month[5:7] == '%02d'|format(number) }}>Tháng {{ number }}</option>{% endfor %}</select></label>
+    <label><span>Năm</span><input type="number" min="1900" max="9999" value="{{ month[:4] }}" data-month-year></label>
+    <button class="button button-primary" type="submit">Xem tháng</button>
+    <span class="tag {{ '' if season.locked else 'tag-warn' }}">{{ 'Đã khóa' if season.locked else 'Đang mở' }}</span>
+  </form>
+
+  {% if awards.draws %}
+  <div class="draw-layout" data-draw-app>
+    <div class="wheel-panel">
+      <div class="draw-task-tabs" data-draw-task-tabs>
+        {% for task in awards.draws %}<button type="button" class="{{ 'active' if loop.first }}" data-draw-task="{{ task.key }}"><span>{{ loop.index }}</span>{{ task.award_title }}<small>{{ task.slots }} suất còn lại</small></button>{% endfor %}
+      </div>
+      <div class="wheel-stage">
+        <div class="wheel-pointer" aria-hidden="true"><i></i><b></b></div>
+        <canvas width="720" height="720" data-prize-wheel aria-label="Vòng quay bốc thăm"></canvas>
+        <div class="wheel-center"><img src="{{ url_for('public.brand_logo') }}" alt=""><span>THÀNH NHÂN</span></div>
+      </div>
+      <div class="wheel-copy"><small data-draw-award></small><h2 data-draw-title></h2><p data-draw-description></p></div>
+      <button class="button spin-button" type="button" data-spin-wheel><span class="shuttle-mini">◒</span> QUAY BỐC THĂM</button>
+      <p class="draw-integrity">Kết quả được chọn ngẫu nhiên ở máy chủ và lưu vào MongoDB trước khi hoạt ảnh bắt đầu.</p>
+    </div>
+
+    <aside class="manual-draw-panel">
+      <small>KHÔNG DÙNG VÒNG QUAY</small>
+      <h2>Chọn người nhận trực tiếp</h2>
+      <p>Dùng khi Ban Tổ chức đã bốc thăm bên ngoài hoặc đã có biên bản phân định.</p>
+      <form method="post" action="{{ url_for('admin.choose_award_manually') }}" data-manual-draw-form>
+        <input type="hidden" name="month" value="{{ month }}">
+        <label><span>Hạng mục cần phân định</span><select name="draw_key" data-manual-task></select></label>
+        <label><span>Người được chọn</span><select name="winner" data-manual-candidate required></select></label>
+        <button class="button button-primary" type="submit">Lưu kết quả đã chọn →</button>
+      </form>
+      <div class="candidate-preview"><b>Danh sách trong vòng quay</b><div data-candidate-list></div></div>
+    </aside>
+  </div>
+  {% else %}
+  <div class="draw-empty"><div class="draw-empty-icon">✓</div><h2>Không có hạng mục cần bốc thăm</h2><p>Tháng này chưa có dữ liệu hòa cần phân định, hoặc toàn bộ kết quả bốc thăm đã được lưu.</p><a class="button button-primary" href="{{ url_for('public.results', month=month, tab='awards') }}">Xem giải thưởng</a></div>
+  {% endif %}
+
+  {% if awards.decisions %}
+  <section class="decision-section"><div class="section-heading compact"><div><span class="section-index">01</span><h2>Kết quả phân định đã lưu</h2><p>Có thể xóa từng hạng mục để bốc thăm hoặc nhập lại.</p></div></div><div class="decision-grid">
+    {% for key, value in awards['decisions'].items() %}<article><div><small>{{ key }}</small><b>{{ value|join(', ') if value is not string else value }}</b></div><form method="post" action="{{ url_for('admin.reset_award_draw') }}" onsubmit="return confirm('Xóa kết quả phân định này?')"><input type="hidden" name="month" value="{{ month }}"><input type="hidden" name="draw_key" value="{{ key }}"><button type="submit">Xóa để làm lại</button></form></article>{% endfor %}
+  </div></section>
+  {% endif %}
+
+  {% if history %}
+  <section class="draw-history"><div class="section-heading compact"><div><span class="section-index">02</span><h2>Lịch sử thao tác</h2><p>Lưu vết vòng quay và kết quả được nhập trực tiếp.</p></div></div><div class="leaderboard-card"><div class="table-scroll"><table class="leaderboard"><thead><tr><th>Thời gian</th><th>Hạng mục</th><th>Người được chọn</th><th>Phương thức</th></tr></thead><tbody>{% for item in history %}<tr><td>{{ item.created_at.strftime('%d/%m/%Y %H:%M') if item.created_at else '' }}</td><td>{{ item.title }}</td><td><b>{{ item.winner }}</b></td><td><span class="tag {{ 'tag-muted' if item.method == 'manual' else '' }}">{{ 'Vòng quay' if item.method == 'wheel' else 'Nhập trực tiếp' }}</span></td></tr>{% endfor %}</tbody></table></div></div></section>
+  {% endif %}
+</section>
+
+{% if awards.draws %}<script type="application/json" id="draw-tasks-data">{{ awards.draws|tojson }}</script>{% endif %}
+<dialog class="winner-dialog" data-winner-dialog>
+  <div class="celebration-court"><div class="racket-smash"><i></i></div><div class="flying-shuttle"><i></i><i></i><i></i><b></b></div><div class="impact-burst"></div><div data-confetti></div></div>
+  <small>KẾT QUẢ BỐC THĂM</small><h2 data-winner-name></h2><p data-winner-title></p><button class="button button-primary" type="button" data-finish-draw>Xác nhận và tiếp tục</button>
+</dialog>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Nhập kết quả · Thành Nhân Badminton{% endblock %}
+{% block content %}
+<section class="page-intro section-shell narrow">
+  <div class="eyebrow"><span></span> GỬI BẢN GHI TRẬN ĐẤU</div>
+  <h1>Nhập kết quả <em>trận đấu</em></h1>
+  <p>Mỗi trận chỉ gửi một lần. Kết quả sẽ xuất hiện trên bảng xếp hạng sau khi Ban Tổ chức kiểm tra và duyệt.</p>
+</section>
+
+<section class="section-shell narrow form-layout">
+  <form id="match-form" class="result-form" novalidate>
+    <div class="form-section">
+      <div class="form-section-title"><span>01</span><div><h2>Thông tin trận đấu</h2><p>Chọn đúng tháng và giai đoạn thi đấu.</p></div></div>
+      <div class="form-grid three">
+        <label><span>Tháng giải đấu</span><input type="month" name="month" value="{{ month }}" required></label>
+        <label><span>Ngày thi đấu</span><input type="date" name="played_date" required></label>
+        <label><span>Giờ thi đấu</span><input type="time" name="played_time" required></label>
+      </div>
+      <div class="segmented">
+        <label><input type="radio" name="stage" value="group" checked><span><b>Vòng bảng</b><small>Ngày 01–21</small></span></label>
+        <label><input type="radio" name="stage" value="final"><span><b>Vòng phân hạng</b><small>Từ ngày 22</small></span></label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title"><span>02</span><div><h2>Người tham gia</h2><p>Mỗi người chỉ giữ một vai trò trong trận.</p></div></div>
+      <div class="form-grid two">
+        <label><span>Vận động viên A</span><input name="player_a" autocomplete="name" placeholder="Họ và tên" required></label>
+        <label><span>Vận động viên B</span><input name="player_b" autocomplete="name" placeholder="Họ và tên" required></label>
+        <label><span>Trọng tài 1</span><input name="referee_1" autocomplete="name" placeholder="Họ và tên" required></label>
+        <label><span>Trọng tài 2</span><input name="referee_2" autocomplete="name" placeholder="Họ và tên" required></label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title"><span>03</span><div><h2>Tỷ số và kết quả</h2><p>Thi đấu tối đa 3 set, chạm 15 và trần 17 điểm.</p></div></div>
+      <label class="full-field"><span>Trạng thái trận</span>
+        <select name="result_status" data-result-status><option value="completed">Đã hoàn thành</option><option value="forfeit">Bỏ cuộc</option><option value="paused">Tạm dừng vì sức khỏe / lý do phù hợp</option></select>
+      </label>
+      <div class="sets" data-sets>
+        {% for number in (1,2,3) %}
+        <div class="set-row"><b>SET {{ number }}</b><label>A <input type="number" name="set{{ number }}_a" min="0" max="17" inputmode="numeric"></label><span>—</span><label>B <input type="number" name="set{{ number }}_b" min="0" max="17" inputmode="numeric"></label>{% if number == 3 %}<small>Chỉ nhập khi hòa 1–1</small>{% endif %}</div>
+        {% endfor %}
+      </div>
+      <div class="forfeit-fields" data-forfeit hidden>
+        <label><span>Người bỏ cuộc</span><select name="forfeit_side"><option value="">Chọn người</option><option value="a">Vận động viên A</option><option value="b">Vận động viên B</option></select></label>
+        <label class="check-line"><input type="checkbox" name="forfeit_reason_valid"><span>Lý do sức khỏe / lý do phù hợp được xác nhận</span></label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title"><span>04</span><div><h2>Điều kiện công nhận</h2><p>Xác nhận theo bản ghi thực tế và minh chứng của trận.</p></div></div>
+      <div class="check-grid">
+        {% set checks = [
+          ('voluntary_confirmed','Hai VĐV tự nguyện và biết tính chất trận trước khi đấu'),
+          ('referees_confirmed','Hai trọng tài được cả hai VĐV đồng ý'),
+          ('photo_before_confirmed','Có ảnh Timestamp trước trận'),
+          ('rules_confirmed','Trận diễn ra đúng thể lệ'),
+          ('score_confirmed','Bốn người xác nhận tỷ số và kết quả'),
+          ('photo_after_confirmed','Có ảnh Timestamp sau trận'),
+          ('submitted_by_referee','Trọng tài 1 cập nhật sau khi đủ xác nhận')
+        ] %}
+        {% for name, label in checks %}<label><input type="checkbox" name="{{ name }}"><span>{{ label }}</span></label>{% endfor %}
+      </div>
+      <div class="evidence-upload" data-evidence-upload>
+        <label class="full-field">
+          <span>Tải ảnh minh chứng lên Google Drive <small>(tối đa 6 ảnh, mỗi ảnh 12 MB)</small></span>
+          <input type="file" name="evidence_files" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple data-evidence-files>
+        </label>
+        <p class="upload-help">Chọn ảnh trước/sau trận. Ảnh sẽ được tải vào thư mục của đúng tháng khi bạn bấm gửi kết quả.</p>
+        <div class="upload-status" data-upload-status hidden></div>
+      </div>
+      <label class="full-field"><span>Hoặc dán link minh chứng <small>(mỗi link một dòng)</small></span><textarea name="evidence_urls" rows="3" placeholder="https://drive.google.com/..."></textarea></label>
+      <label class="full-field"><span>Ghi chú cho Ban Tổ chức</span><textarea name="notes" rows="3" placeholder="Nội dung cần BTC lưu ý (nếu có)"></textarea></label>
+    </div>
+
+    <div class="form-errors" data-form-errors hidden></div>
+    <button class="button button-primary submit-button" type="submit">Gửi kết quả để BTC duyệt <span>→</span></button>
+    <p class="form-footnote">Bằng việc gửi, bạn xác nhận thông tin trên đúng với bản ghi đã được những người tham gia xác nhận.</p>
+  </form>
+  <aside class="form-aside">
+    <div class="aside-card"><small>QUY TRÌNH</small><ol><li class="active">Nhập kết quả</li><li>BTC kiểm tra</li><li>Duyệt bản ghi</li><li>Tự động xếp hạng</li></ol></div>
+    <div class="aside-note"><b>Lưu ý trước khi gửi</b><p>Vòng bảng không được lặp đối thủ. Ba trận hợp lệ đầu tiên của từng người là trận chính thức; năm trận tiếp theo là không chính thức.</p></div>
+  </aside>
+</section>
+
+<dialog id="success-dialog" class="success-dialog">
+  <div class="success-icon">✓</div><small>ĐÃ TIẾP NHẬN</small><h2>Gửi kết quả thành công</h2><p>Mã bản ghi: <b data-match-code></b>. Kết quả đang chờ Ban Tổ chức kiểm tra.</p>
+  <div><a class="button button-primary" href="{{ url_for('public.home') }}">Về trang tổng quan</a><button class="button button-ghost" data-new-match>Nhập trận khác</button></div>
+</dialog>
+{% endblock %}

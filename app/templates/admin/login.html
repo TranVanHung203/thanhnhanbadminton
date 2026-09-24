@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập quản trị{% endblock %}
+{% block content %}
+<section class="login-shell"><form method="post" class="login-card"><img class="login-logo" src="{{ url_for('public.brand_logo') }}" alt="Logo Thành Nhân"><small>KHU VỰC BAN TỔ CHỨC</small><h1>Đăng nhập quản trị</h1><p>Duyệt bản ghi, khóa mùa giải và theo dõi dữ liệu thi đấu.</p><label><span>Mật khẩu quản trị</span><input type="password" name="password" autofocus required placeholder="Nhập mật khẩu"></label><button class="button button-primary" type="submit">Đăng nhập <span>→</span></button></form></section>
+{% endblock %}
