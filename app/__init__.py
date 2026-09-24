@@ -28,7 +28,7 @@ def create_app(test_config=None):
         return {
             "app_name": "Thành Nhân Badminton",
             "share_image_url": url_for(
-                "public.brand_logo", _external=True, _scheme=scheme
+                "public.social_preview", _external=True, _scheme=scheme
             ),
             "share_page_url": f"{scheme}://{request.host}{page_path}",
         }

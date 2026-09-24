@@ -20,7 +20,7 @@ def test_submit_page_has_absolute_social_preview_metadata():
     assert 'property="og:title" content="Nhập kết quả thi đấu · Thành Nhân Badminton"' in html
     assert (
         'property="og:image" '
-        'content="https://badminton-thanhnhanteam.onrender.com/thanh-nhan-logo.png"'
+        'content="https://badminton-thanhnhanteam.onrender.com/thanh-nhan-social-preview-v2.png"'
         in html
     )
     assert (
@@ -28,4 +28,17 @@ def test_submit_page_has_absolute_social_preview_metadata():
         'content="https://badminton-thanhnhanteam.onrender.com/nhap-ket-qua"'
         in html
     )
-    assert 'name="twitter:card" content="summary"' in html
+    assert 'property="og:image:width" content="1733"' in html
+    assert 'property="og:image:height" content="908"' in html
+    assert 'name="twitter:card" content="summary_large_image"' in html
+
+
+def test_social_preview_image_is_public():
+    app = create_app({"TESTING": True})
+
+    with app.test_client() as client:
+        response = client.get("/thanh-nhan-social-preview-v2.png")
+
+    assert response.status_code == 200
+    assert response.content_type == "image/png"
+    assert len(response.data) > 100_000

@@ -43,6 +43,12 @@ def brand_logo():
     return send_file(logo_path, mimetype="image/png", max_age=86400)
 
 
+@public_bp.get("/thanh-nhan-social-preview-v2.png")
+def social_preview():
+    image_path = Path(current_app.root_path).parent / "social-preview-v2.png"
+    return send_file(image_path, mimetype="image/png", max_age=604800)
+
+
 @public_bp.route("/nhap-ket-qua")
 def submit_result():
     month = normalize_month(request.args.get("month"), current_month())
