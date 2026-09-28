@@ -49,19 +49,7 @@
     </div>
 
     <div class="form-section">
-      <div class="form-section-title"><span>04</span><div><h2>Điều kiện công nhận</h2><p>Xác nhận theo bản ghi thực tế và minh chứng của trận.</p></div></div>
-      <div class="check-grid">
-        {% set checks = [
-          ('voluntary_confirmed','Hai VĐV tự nguyện và biết tính chất trận trước khi đấu'),
-          ('referees_confirmed','Hai trọng tài được cả hai VĐV đồng ý'),
-          ('photo_before_confirmed','Có ảnh Timestamp trước trận'),
-          ('rules_confirmed','Trận diễn ra đúng thể lệ'),
-          ('score_confirmed','Bốn người xác nhận tỷ số và kết quả'),
-          ('photo_after_confirmed','Có ảnh Timestamp sau trận'),
-          ('submitted_by_referee','Trọng tài 1 cập nhật sau khi đủ xác nhận')
-        ] %}
-        {% for name, label in checks %}<label><input type="checkbox" name="{{ name }}"><span>{{ label }}</span></label>{% endfor %}
-      </div>
+      <div class="form-section-title"><span>04</span><div><h2>Minh chứng và ghi chú</h2><p>Đính kèm hình ảnh hoặc đường dẫn minh chứng của trận.</p></div></div>
       <div class="evidence-upload" data-evidence-upload>
         <label class="full-field">
           <span>Tải ảnh minh chứng lên Google Drive <small>(tối đa 6 ảnh, mỗi ảnh 12 MB)</small></span>

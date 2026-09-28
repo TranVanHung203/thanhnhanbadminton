@@ -3,17 +3,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 
-YES_FIELDS = (
-    "voluntary_confirmed",
-    "referees_confirmed",
-    "photo_before_confirmed",
-    "rules_confirmed",
-    "score_confirmed",
-    "photo_after_confirmed",
-    "submitted_by_referee",
-)
-
-
 def clean_name(value):
     return re.sub(r"\s+", " ", (value or "").strip())
 
@@ -49,7 +38,7 @@ def match_winner(sets):
     return None
 
 
-def validate_match_payload(data, *, require_confirmations=True):
+def validate_match_payload(data):
     errors = {}
     player_a = clean_name(data.get("player_a"))
     player_b = clean_name(data.get("player_b"))
@@ -121,10 +110,6 @@ def validate_match_payload(data, *, require_confirmations=True):
         else:
             evidence.append(url)
 
-    confirmations = {key: parse_bool(data.get(key)) for key in YES_FIELDS}
-    if require_confirmations and not all(confirmations.values()):
-        errors["confirmations"] = "Cần xác nhận đủ các điều kiện công nhận trận đấu."
-
     cleaned = {
         "month": month,
         "played_date": played_date,
@@ -138,9 +123,7 @@ def validate_match_payload(data, *, require_confirmations=True):
         "result_status": result_status,
         "forfeit_side": data.get("forfeit_side") if result_status == "forfeit" else None,
         "forfeit_reason_valid": parse_bool(data.get("forfeit_reason_valid")),
-        "confirmations": confirmations,
         "evidence_urls": evidence,
         "notes": str(data.get("notes", "")).strip(),
     }
     return cleaned, errors
-
