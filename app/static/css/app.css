@@ -50,3 +50,66 @@ body{background:linear-gradient(180deg,#f7fcff 0,#eef8fd 100%)}
 @media(max-width:900px){.draw-layout{grid-template-columns:1fr}.manual-draw-panel{position:static}.decision-grid{grid-template-columns:1fr 1fr}.admin-actions{flex-wrap:wrap}}
 @media(max-width:600px){.brand-logo{width:46px;height:46px}.brand>span:last-child{display:none}.draw-page{width:min(100% - 18px,1180px)}.wheel-panel{padding:16px 9px}.wheel-stage{width:min(100%,520px)}.wheel-center{width:92px;height:92px;border-width:5px}.wheel-center img{width:72px;height:72px}.draw-task-tabs button{min-width:138px}.manual-draw-panel{padding:22px 18px}.decision-grid{grid-template-columns:1fr}.draw-month-picker>.tag{margin-left:0}.winner-dialog{padding-inline:22px}.celebration-court{margin-inline:-22px}.racket-smash{left:35px}.flying-shuttle{left:130px}.site-footer .footer-brand img{width:48px;height:48px}}
 .calendar-picker input[type=number]{color:#164f70;background:#fff}
+
+/* Result form readability and mobile alignment */
+.result-form,.form-layout,.form-layout>*{min-width:0}
+.segmented input{width:1px;height:1px;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.segmented input:focus-visible+span{outline:3px solid rgba(47,143,189,.25);outline-offset:2px}
+.form-section-title p{font-size:14px;line-height:1.55}
+.result-form label>span,.result-form .full-field>span{font-size:13px;line-height:1.45}
+.result-form input:not([type=checkbox]):not([type=radio]),.result-form select,.result-form textarea{min-width:0;max-width:100%;min-height:48px;font-size:16px}
+.segmented b{font-size:14px}.segmented small{font-size:12px}
+.set-row>b,.set-row label{font-size:12px}.set-row label{min-width:0}.set-row input{min-width:0}
+.upload-help,.upload-status{font-size:13px;line-height:1.55}
+.form-errors{font-size:14px}.form-footnote{font-size:12px;line-height:1.55}
+.form-aside li,.aside-note b{font-size:13px}.aside-note p{font-size:12px;line-height:1.6}
+
+@media(max-width:600px){
+  .section-shell,.section-shell.narrow{width:calc(100% - 24px)}
+  .page-intro{padding-block:34px 22px}
+  .page-intro .eyebrow{font-size:12px;letter-spacing:1.6px;margin-bottom:17px}
+  .page-intro h1{font-size:clamp(38px,11vw,48px);line-height:1.04;margin-bottom:17px}
+  .page-intro>p{font-size:15px;line-height:1.65;margin-bottom:0}
+  .form-layout{gap:20px;padding-bottom:55px}
+  .result-form{width:100%}
+  .form-section{padding:24px 16px}
+  .form-section-title{gap:11px;margin-bottom:22px}
+  .form-section-title>span{min-width:34px;width:34px;height:34px;font-size:11px}
+  .form-section-title h2{font-size:25px;line-height:1.15}
+  .form-section-title p{font-size:14px;margin-top:4px}
+  .form-grid{gap:15px}
+  .result-form label>span,.result-form .full-field>span{font-size:14px}
+  .result-form input:not([type=checkbox]):not([type=radio]),.result-form select,.result-form textarea{min-height:50px;padding:13px 12px;font-size:16px}
+  .segmented{gap:10px}
+  .segmented label>span{padding:14px}
+  .segmented b{font-size:15px}.segmented small{font-size:13px;margin-top:3px}
+  .sets{margin-top:18px}
+  .set-row{grid-template-columns:42px minmax(0,1fr) 12px minmax(0,1fr);gap:8px;padding:12px 0}
+  .set-row>b{font-size:12px;white-space:nowrap}
+  .set-row label{gap:5px;font-size:13px}
+  .set-row input{width:100%;padding-inline:6px}
+  .forfeit-fields{padding:15px}
+  .check-line{align-items:flex-start}
+  .check-line input{flex:0 0 20px;width:20px;height:20px;margin-top:1px}
+  .check-line span{font-size:14px;line-height:1.5}
+  .evidence-upload{padding:15px 13px}
+  .evidence-upload input[type=file]{font-size:14px;padding:9px 7px}
+  .upload-help,.upload-status{font-size:13px}
+  .submit-button{min-height:54px;margin:22px 16px 12px;width:calc(100% - 32px);padding-inline:14px;font-size:15px;gap:12px}
+  .form-errors{margin:18px 16px 0;font-size:14px}
+  .form-footnote{padding:0 16px 24px;font-size:12px}
+  .form-aside li{font-size:14px}.aside-note b{font-size:14px}.aside-note p{font-size:13px}
+  .success-dialog{width:calc(100% - 24px);padding:30px 18px}
+  .success-dialog h2{font-size:29px;line-height:1.15}
+  .success-dialog>div:last-child{flex-direction:column}
+  .success-dialog .button{width:100%;font-size:14px}
+}
+
+@media(max-width:360px){
+  .section-shell,.section-shell.narrow{width:calc(100% - 16px)}
+  .form-section{padding-inline:12px}
+  .form-section-title h2{font-size:23px}
+  .set-row{grid-template-columns:39px minmax(0,1fr) 10px minmax(0,1fr);gap:5px}
+  .set-row label{gap:3px}
+  .evidence-upload{padding-inline:10px}
+}
