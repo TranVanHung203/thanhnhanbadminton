@@ -67,3 +67,15 @@ def test_draw_wheel_itself_is_the_only_spin_control():
     assert "Chạm vào vòng quay để bắt đầu" in html
     assert "QUAY BỐC THĂM" not in html
     assert "<span>THÀNH NHÂN</span>" not in html
+
+
+def test_rules_page_uses_the_published_prize_amounts():
+    app = create_app({"TESTING": True})
+
+    with app.test_client() as client:
+        html = client.get("/the-le").get_data(as_text=True)
+
+    assert "05 Giải Ba trị giá 100.000 đồng/người" in html
+    assert "Tay vợt có thành tích đối đầu ấn tượng (500.000 đồng)" in html
+    assert "80.000 đồng/người" not in html
+    assert "1.000.000 đồng" not in html

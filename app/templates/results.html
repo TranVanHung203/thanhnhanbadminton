@@ -21,8 +21,8 @@
   <div data-panel="awards" hidden>
     <div class="award-overview">
       <div><small>QUỸ KHEN THƯỞNG THÁNG</small><strong>{{ "{:,}".format(awards.total_budget).replace(",", ".") }}đ</strong><span>{{ awards.status_label }} · Đã xác định {{ "{:,}".format(awards.allocated).replace(",", ".") }}đ</span></div>
-      <div><small>THƯỞNG THÀNH TÍCH</small><strong>1.500.000đ</strong><span>01 Nhất · 03 Nhì · 05 Ba</span></div>
-      <div><small>THƯỞNG THÁI ĐỘ</small><strong>1.500.000đ</strong><span>03 danh hiệu theo thứ tự ưu tiên</span></div>
+      <div><small>THƯỞNG THÀNH TÍCH</small><strong>{{ "{:,}".format(awards.achievement.budget).replace(",", ".") }}đ</strong><span>01 Nhất · 03 Nhì · 05 Ba</span></div>
+      <div><small>THƯỞNG THÁI ĐỘ</small><strong>{{ "{:,}".format(awards.attitude.budget).replace(",", ".") }}đ</strong><span>03 danh hiệu theo thứ tự ưu tiên</span></div>
     </div>
 
     <div class="award-heading"><div><span class="section-index">01</span><h2>Thưởng thành tích</h2><p>Xác định theo bảng xếp hạng; các ranh giới đồng hạng được để chờ phân hạng hoặc bốc thăm.</p></div></div>
@@ -50,19 +50,19 @@
         <h3>{{ item.title }}</h3>
         <b class="award-money">{{ "{:,}".format(item.prize).replace(",", ".") }}đ</b>
         <div class="award-people">
-          {% for person in item.recipients %}<p><span class="award-person-icon">✓</span><b>{{ person.name }}</b>{% if item.key == 'head_to_head' %}<small>{{ person.duel_points }} điểm đối đầu</small>{% elif item.key == 'active_star' %}<small>{{ person.stars }} sao · {{ person.matches }} trận KCT</small>{% else %}<small>{{ person.flowers }} hoa</small>{% endif %}</p>{% endfor %}
-          {% for person in item.candidates %}<p class="pending"><span class="award-person-icon">?</span><b>{{ person.name }}</b>{% if item.key == 'head_to_head' %}<small>{{ person.duel_points }} điểm đối đầu</small>{% elif item.key == 'active_star' %}<small>{{ person.stars }} sao · {{ person.matches }} trận KCT</small>{% else %}<small>{{ person.flowers }} hoa</small>{% endif %}</p>{% endfor %}
+          {% for person in item.recipients %}<p><span class="award-person-icon">✓</span><b>{{ person.name }}</b>{% if item.key == 'head_to_head' %}<small>{{ person.priority_label }} · {{ person.straight_set_wins }} trận 2–0 · +{{ person.winning_set_margin }} điểm set thắng</small>{% elif item.key == 'active_star' %}<small>{{ person.stars }} sao · {{ person.matches }} trận KCT</small>{% else %}<small>{{ person.flowers }} hoa</small>{% endif %}</p>{% endfor %}
+          {% for person in item.candidates %}<p class="pending"><span class="award-person-icon">?</span><b>{{ person.name }}</b>{% if item.key == 'head_to_head' %}<small>{{ person.priority_label }} · {{ person.straight_set_wins }} trận 2–0 · +{{ person.winning_set_margin }} điểm set thắng</small>{% elif item.key == 'active_star' %}<small>{{ person.stars }} sao · {{ person.matches }} trận KCT</small>{% else %}<small>{{ person.flowers }} hoa</small>{% endif %}</p>{% endfor %}
           {% if not item.recipients and not item.candidates %}<p class="empty-award">{{ item.note }}</p>{% endif %}
         </div>
-        <footer><span class="tag {{ 'tag-warn' if item.status in ('draw','waiting') else ('tag-muted' if item.status == 'no_eligible' else '') }}">{% if item.status == 'winner' %}{{ awards.status_label }}{% elif item.status == 'draw' %}Chờ bốc thăm{% elif item.status == 'waiting' %}Chờ giải trước{% else %}Chưa đủ điều kiện{% endif %}</span></footer>
+        <footer><span class="tag {{ 'tag-warn' if item.status in ('draw','waiting') else ('tag-muted' if item.status in ('no_eligible','tied_unawarded') else '') }}">{% if item.status == 'winner' %}{{ awards.status_label }}{% elif item.status == 'draw' %}Chờ bốc thăm{% elif item.status == 'waiting' %}Chờ giải trước{% elif item.status == 'tied_unawarded' %}Không trao do bằng nhau{% else %}Chưa đủ điều kiện{% endif %}</span></footer>
       </article>
       {% endfor %}
     </div>
 
     {% set duel_award = awards.attitude['items'][0] %}
     {% if duel_award.rows %}
-    <div class="award-heading compact"><div><span class="section-index">03</span><h2>Thống kê điểm đối đầu</h2><p>Chỉ hiển thị người đạt điều kiện tối thiểu thắng một đối thủ thuộc Giải Nhất, Nhì hoặc Ba.</p></div></div>
-    <div class="leaderboard-card"><div class="table-scroll"><table class="leaderboard"><thead><tr><th>Vận động viên</th><th>Điểm đối đầu</th><th>Trận thắng top</th><th>Điểm trận cao nhất</th><th>Số đối thủ top</th><th>Hiệu số điểm</th></tr></thead><tbody>{% for row in duel_award.rows %}<tr><td><b>{{ row.name }}</b></td><td><b>{{ row.duel_points }}</b></td><td>{{ row.top_wins }}</td><td>{{ row.best_result }}</td><td>{{ row.top_opponents }}</td><td>{{ '+' if row.point_diff > 0 else '' }}{{ row.point_diff }}</td></tr>{% endfor %}</tbody></table></div></div>
+    <div class="award-heading compact"><div><span class="section-index">03</span><h2>Đối chiếu danh hiệu đối đầu</h2><p>Chỉ so sánh những người cùng đạt mức ưu tiên cao nhất đang có trong tháng.</p></div></div>
+    <div class="leaderboard-card"><div class="table-scroll"><table class="leaderboard"><thead><tr><th>Vận động viên</th><th>Mức xét</th><th>Trận căn cứ</th><th>Thắng 2–0</th><th>Chênh lệch điểm set thắng</th></tr></thead><tbody>{% for row in duel_award.rows %}<tr><td><b>{{ row.name }}</b></td><td><b>{{ row.priority_label }}</b></td><td>{{ row.basis_matches }}</td><td>{{ row.straight_set_wins }}</td><td>+{{ row.winning_set_margin }}</td></tr>{% endfor %}</tbody></table></div></div>
     {% endif %}
     <p class="table-note">Kết quả chỉ trở thành chính thức sau khi mùa giải được khóa. Hệ thống không tự chọn ngẫu nhiên khi thể lệ yêu cầu bốc thăm.</p>
   </div>

@@ -62,9 +62,11 @@ deploy lại.
 - Mỗi trọng tài của trận hợp lệ nhận 1 hoa.
 - Người chỉ làm trọng tài không xuất hiện trong bảng xếp hạng vận động viên; họ được hiển thị ở bảng Hoa đồng hành riêng.
 - Vòng phân hạng cộng điểm vào tổng tháng và không tạo sao.
+- Nếu vẫn đồng hạng Nhất sau vòng phân hạng, hệ thống lần lượt xét đối đầu trực tiếp, hiệu số set và hiệu số điểm; trường hợp còn bằng nhau được đánh dấu để tổ chức set quyết định.
 - Chỉ trận có trạng thái `approved` mới ảnh hưởng bảng xếp hạng.
-- Thưởng thành tích gồm 01 Giải Nhất, 03 Giải Nhì và 05 Giải Ba; hệ thống không tự phá các trường hợp đồng hạng cần thi đấu hoặc bốc thăm.
-- Thưởng thái độ được xét lần lượt: Thành tích đối đầu ấn tượng → Ngôi sao thi đấu tích cực → Hoa đồng hành tích cực. Một người chỉ nhận tối đa một danh hiệu thái độ.
+- Thưởng thành tích gồm 01 Giải Nhất 500.000 đồng, 03 Giải Nhì 200.000 đồng/người và 05 Giải Ba 100.000 đồng/người.
+- Thưởng thái độ được xét lần lượt: Thành tích đối đầu ấn tượng 500.000 đồng → Ngôi sao thi đấu tích cực 250.000 đồng → Hoa đồng hành tích cực 250.000 đồng. Một người chỉ nhận tối đa một danh hiệu thái độ.
+- Danh hiệu đối đầu áp dụng đúng ba mức ưu tiên trong thể lệ; nếu cùng mức thì xét số trận thắng 2–0 và chênh lệch điểm trong các set thắng. Nếu vẫn bằng nhau, danh hiệu không được trao.
 - Trạng thái giải thưởng là dự kiến khi tháng đang mở và trở thành chính thức khi mùa giải được khóa.
 
 Thứ tự trước vòng phân hạng được lấy theo dự thảo Word: điểm chính thức → đủ 3 trận chính thức → sao. Sau khi có vòng phân hạng: tổng điểm tháng → sao. Các tình huống đồng hạng đặc biệt vẫn được đánh dấu để BTC xử lý.

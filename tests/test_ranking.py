@@ -42,6 +42,29 @@ def test_final_points_are_added_without_stars():
     assert an["stars"] == 0
 
 
+def test_final_round_uses_set_difference_after_points_and_stars_are_equal():
+    matches = [
+        make_match(1, "An", "Bình", stage="final"),
+        make_match(2, "Bình", "Cường", stage="final"),
+        make_match(3, "Cường", "An", stage="final"),
+    ]
+    matches[2]["sets"] = [
+        {"a": 15, "b": 10},
+        {"a": 10, "b": 15},
+        {"a": 15, "b": 13},
+    ]
+
+    rows = calculate_rankings(matches)
+
+    assert find(rows, "An")["final_points"] == 4
+    assert find(rows, "Bình")["final_points"] == 4
+    assert find(rows, "Cường")["final_points"] == 4
+    assert find(rows, "An")["final_set_difference"] == 1
+    assert find(rows, "An")["rank"] == 1
+    assert find(rows, "Bình")["rank"] == 2
+    assert find(rows, "Cường")["rank"] == 3
+
+
 def test_referee_only_is_not_in_player_ranking():
     matches = [make_match(1, "An", "Bình")]
     rows = calculate_rankings(matches)
@@ -115,6 +138,62 @@ def test_attitude_awards_are_ordered_and_previous_winners_are_excluded():
     assert attitude["active_star"]["recipients"][0]["name"] == "Ngôi sao"
     assert attitude["active_flower"]["recipients"][0]["name"] == "Đồng hành"
     assert awards["status_label"] == "Chính thức"
+
+
+def test_head_to_head_uses_the_highest_available_priority_level():
+    rankings = [
+        {"name": "Nhất", "rank": 1, "award": "Giải Nhất", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Nhì 1", "rank": 2, "award": "Giải Nhì", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Nhì 2", "rank": 3, "award": "Giải Nhì", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Nhì 3", "rank": 4, "award": "Giải Nhì", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Ba 1", "rank": 5, "award": "Giải Ba", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Ba 2", "rank": 6, "award": "Giải Ba", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Ưu tiên 2", "rank": 7, "award": "Giải Ba", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "Ưu tiên 3", "rank": 8, "award": "Giải Ba", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+    ]
+    matches = [
+        make_match(1, "Ưu tiên 2", "Nhì 1"),
+        make_match(2, "Ưu tiên 2", "Nhì 2"),
+        make_match(3, "Ưu tiên 3", "Nhì 3"),
+        make_match(4, "Ưu tiên 3", "Ba 1"),
+        make_match(5, "Ưu tiên 3", "Ba 2"),
+    ]
+
+    awards = calculate_awards(matches, rankings, [])
+    head_to_head = awards["attitude"]["items"][0]
+
+    assert head_to_head["status"] == "winner"
+    assert head_to_head["recipients"][0]["name"] == "Ưu tiên 2"
+    assert head_to_head["recipients"][0]["priority"] == 2
+
+
+def test_head_to_head_tie_is_not_awarded_and_does_not_block_star_award():
+    rankings = [
+        {"name": "Nhất", "rank": 1, "award": "Giải Nhất", "award_status": "", "official_matches": 3, "unofficial_completed": 0, "stars": 0},
+        {"name": "A", "rank": 2, "award": "Giải Nhì", "award_status": "", "official_matches": 3, "unofficial_completed": 2, "stars": 6},
+        {"name": "B", "rank": 3, "award": "Giải Nhì", "award_status": "", "official_matches": 3, "unofficial_completed": 1, "stars": 3},
+    ]
+    matches = [make_match(1, "A", "Nhất"), make_match(2, "B", "Nhất")]
+
+    awards = calculate_awards(matches, rankings, [])
+    head_to_head, active_star, _ = awards["attitude"]["items"]
+
+    assert head_to_head["status"] == "tied_unawarded"
+    assert head_to_head["recipients"] == []
+    assert {item["name"] for item in head_to_head["candidates"]} == {"A", "B"}
+    assert active_star["recipients"][0]["name"] == "A"
+
+
+def test_award_budget_matches_the_published_prize_structure():
+    awards = calculate_awards([], [], [])
+    achievement = {item["key"]: item for item in awards["achievement"]["items"]}
+    attitude = {item["key"]: item for item in awards["attitude"]["items"]}
+
+    assert achievement["third"]["prize"] == 100_000
+    assert attitude["head_to_head"]["prize"] == 500_000
+    assert awards["achievement"]["budget"] == 1_600_000
+    assert awards["attitude"]["budget"] == 1_000_000
+    assert awards["total_budget"] == 2_600_000
 
 
 def test_saved_boundary_draw_assigns_second_and_remaining_thirds():

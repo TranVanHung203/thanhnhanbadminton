@@ -19,7 +19,7 @@ from ..services.google_drive import (
 admin_bp = Blueprint("admin", __name__)
 DRAW_DECISION_KEYS = {
     "achievement_second", "achievement_third",
-    "head_to_head", "active_star", "active_flower",
+    "active_star", "active_flower",
 }
 
 

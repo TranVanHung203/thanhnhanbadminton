@@ -6,11 +6,11 @@ from .validation import identity, match_winner
 ACHIEVEMENT_AWARDS = (
     {"key": "first", "title": "Giải Nhất", "quantity": 1, "prize": 500_000},
     {"key": "second", "title": "Giải Nhì", "quantity": 3, "prize": 200_000},
-    {"key": "third", "title": "Giải Ba", "quantity": 5, "prize": 80_000},
+    {"key": "third", "title": "Giải Ba", "quantity": 5, "prize": 100_000},
 )
 
 ATTITUDE_AWARDS = (
-    {"key": "head_to_head", "title": "Tay vợt có thành tích đối đầu ấn tượng", "prize": 1_000_000},
+    {"key": "head_to_head", "title": "Tay vợt có thành tích đối đầu ấn tượng", "prize": 500_000},
     {"key": "active_star", "title": "Ngôi sao thi đấu tích cực", "prize": 250_000},
     {"key": "active_flower", "title": "Hoa đồng hành tích cực", "prize": 250_000},
 )
@@ -31,6 +31,9 @@ def _blank(name):
         "final_matches": 0,
         "final_wins": 0,
         "final_points": 0,
+        "final_head_to_head_wins": 0,
+        "final_set_difference": 0,
+        "final_point_difference": 0,
         "total_points": 0,
         "rank": None,
         "award": "",
@@ -53,6 +56,46 @@ def _is_countable(match):
         match.get("result_status") == "paused"
         or (match.get("result_status") == "forfeit" and match.get("forfeit_reason_valid"))
     )
+
+
+def _final_tiebreak_statistics(matches, candidate_names):
+    """Tính đối đầu, hiệu số set và hiệu số điểm trong nhóm còn đồng hạng Nhất."""
+    candidate_keys = {identity(name) for name in candidate_names}
+    stats = {
+        key: {"head_to_head_wins": 0, "set_difference": 0, "point_difference": 0}
+        for key in candidate_keys
+    }
+
+    for match in matches:
+        if (
+            match.get("status") != "approved"
+            or match.get("stage") != "final"
+            or not _is_countable(match)
+        ):
+            continue
+        a_key = identity(match.get("player_a"))
+        b_key = identity(match.get("player_b"))
+        if a_key not in candidate_keys or b_key not in candidate_keys:
+            continue
+
+        winner = _winner(match)
+        if winner == "a":
+            stats[a_key]["head_to_head_wins"] += 1
+        elif winner == "b":
+            stats[b_key]["head_to_head_wins"] += 1
+
+        for played_set in match.get("sets", []):
+            a_points, b_points = played_set["a"], played_set["b"]
+            if a_points > b_points:
+                stats[a_key]["set_difference"] += 1
+                stats[b_key]["set_difference"] -= 1
+            else:
+                stats[a_key]["set_difference"] -= 1
+                stats[b_key]["set_difference"] += 1
+            stats[a_key]["point_difference"] += a_points - b_points
+            stats[b_key]["point_difference"] += b_points - a_points
+
+    return stats
 
 
 def _assign_achievement_labels(rows):
@@ -227,10 +270,53 @@ def calculate_rankings(matches):
         item["flowers"] = flowers[identity(item["name"])]
         item["total_points"] = item["official_points"] + item["final_points"]
 
-    # Trước phân hạng: điểm -> đủ 3 trận -> sao. Sau phân hạng: tổng điểm -> sao.
+    # Trước phân hạng: điểm -> đủ 3 trận -> sao.
+    # Sau phân hạng: tổng điểm -> sao; nếu vẫn đồng hạng Nhất thì xét đối đầu,
+    # hiệu số set và hiệu số điểm của vòng tròn phân hạng.
     if has_final:
-        key_func = lambda x: (-x["total_points"], -x["stars"], x["name"].casefold())
-        tie_func = lambda x: (x["total_points"], x["stars"])
+        result.sort(key=lambda x: (-x["total_points"], -x["stars"], x["name"].casefold()))
+        top_key = (result[0]["total_points"], result[0]["stars"]) if result else None
+        top_group = [
+            item for item in result
+            if (item["total_points"], item["stars"]) == top_key
+        ]
+        if len(top_group) > 1:
+            final_stats = _final_tiebreak_statistics(
+                approved, [item["name"] for item in top_group]
+            )
+            for item in top_group:
+                item_stats = final_stats[identity(item["name"])]
+                item["final_head_to_head_wins"] = item_stats["head_to_head_wins"]
+                item["final_set_difference"] = item_stats["set_difference"]
+                item["final_point_difference"] = item_stats["point_difference"]
+
+        top_keys = {identity(item["name"]) for item in top_group}
+
+        def key_func(item):
+            if identity(item["name"]) in top_keys:
+                return (
+                    -item["total_points"],
+                    -item["stars"],
+                    -item["final_head_to_head_wins"],
+                    -item["final_set_difference"],
+                    -item["final_point_difference"],
+                    item["name"].casefold(),
+                )
+            return (
+                -item["total_points"], -item["stars"], 0, 0, 0,
+                item["name"].casefold(),
+            )
+
+        def tie_func(item):
+            if identity(item["name"]) in top_keys:
+                return (
+                    item["total_points"],
+                    item["stars"],
+                    item["final_head_to_head_wins"],
+                    item["final_set_difference"],
+                    item["final_point_difference"],
+                )
+            return (item["total_points"], item["stars"], 0, 0, 0)
     else:
         key_func = lambda x: (
             -x["official_points"],
@@ -257,7 +343,10 @@ def calculate_rankings(matches):
         if len(group) > 1:
             for item in group:
                 item["tied"] = True
-                item["tie_status"] = "final_round" if item["rank"] == 1 else "equal_result"
+                if item["rank"] == 1:
+                    item["tie_status"] = "final_tiebreak" if has_final else "final_round"
+                else:
+                    item["tie_status"] = "equal_result"
 
     _assign_achievement_labels(result)
     return result
@@ -326,21 +415,21 @@ def _achievement_statistics(rankings):
     }
 
 
-def _head_to_head_statistics(matches, rankings, achievement_resolved, decided_name=None):
+def _head_to_head_statistics(matches, rankings, achievement_resolved):
     config = dict(ATTITUDE_AWARDS[0])
     if not achievement_resolved:
         config.update({
             "status": "waiting",
             "recipients": [],
             "candidates": [],
-            "note": "Chờ hoàn tất phân hạng thành tích để xác định hệ số đối thủ.",
+            "note": "Chờ hoàn tất phân hạng thành tích để xác định thứ hạng đối thủ.",
             "rows": [],
         })
         return config
 
     ranking_map = {identity(row["name"]): row for row in rankings}
     appearances = defaultdict(int)
-    records = defaultdict(list)
+    wins = defaultdict(list)
     approved = [m for m in matches if m.get("status") == "approved"]
     approved.sort(key=lambda m: (m.get("submitted_at"), str(m.get("_id", ""))))
 
@@ -359,89 +448,85 @@ def _head_to_head_statistics(matches, rankings, achievement_resolved, decided_na
                 continue
 
             opponent_row = ranking_map.get(identity(opponent), _blank(opponent))
-            opponent_coeff = {"Giải Nhất": 6, "Giải Nhì": 5, "Giải Ba": 4}.get(
-                opponent_row.get("award"), 2 if opponent_row.get("official_matches", 0) >= 3 else 1
-            )
             won = winner == side
-            own_points = sum(item[side] for item in sets)
-            other_side = "b" if side == "a" else "a"
-            opponent_points = sum(item[other_side] for item in sets)
-            point_diff = own_points - opponent_points
-            if won:
-                result_coeff = 2.0
-            elif sets:
-                average_margin = (opponent_points - own_points) / len(sets)
-                result_coeff = 1.0 if average_margin <= 2 else (0.5 if average_margin <= 4 else 0.0)
-            else:
-                result_coeff = 0.0
+            opponent_award = opponent_row.get("award", "")
+            if not won or opponent_award not in {"Giải Nhất", "Giải Nhì", "Giải Ba"}:
+                continue
 
-            records[player_key].append({
+            other_side = "b" if side == "a" else "a"
+            set_wins = sum(1 for item in sets if item[side] > item[other_side])
+            set_losses = sum(1 for item in sets if item[side] < item[other_side])
+            winning_set_margin = sum(
+                item[side] - item[other_side]
+                for item in sets
+                if item[side] > item[other_side]
+            )
+            wins[player_key].append({
                 "opponent": opponent,
-                "opponent_award": opponent_row.get("award", ""),
-                "opponent_coefficient": opponent_coeff,
-                "result_coefficient": result_coeff,
-                "duel_points": opponent_coeff * result_coeff,
-                "won": won,
-                "top_opponent": opponent_row.get("award") in {"Giải Nhất", "Giải Nhì", "Giải Ba"},
-                "point_diff": point_diff,
+                "opponent_award": opponent_award,
+                "straight_sets": int(set_wins == 2 and set_losses == 0),
+                "winning_set_margin": winning_set_margin,
             })
 
     summaries = []
     for row in rankings:
-        player_records = records.get(identity(row["name"]), [])
-        selected = sorted(
-            player_records,
-            key=lambda item: (-item["duel_points"], -int(item["won"]), -item["point_diff"], item["opponent"].casefold()),
-        )[:3]
-        eligible = any(item["won"] and item["top_opponent"] for item in player_records)
+        player_wins = wins.get(identity(row["name"]), [])
+        first_wins = [item for item in player_wins if item["opponent_award"] == "Giải Nhất"]
+        second_wins = [item for item in player_wins if item["opponent_award"] == "Giải Nhì"]
+        third_wins = [item for item in player_wins if item["opponent_award"] == "Giải Ba"]
+
+        if first_wins:
+            priority = 1
+            basis = first_wins
+        elif len({identity(item["opponent"]) for item in second_wins}) >= 2:
+            priority = 2
+            basis = second_wins
+        elif (
+            len({identity(item["opponent"]) for item in second_wins}) >= 1
+            and len({identity(item["opponent"]) for item in third_wins}) >= 2
+        ):
+            priority = 3
+            basis = second_wins + third_wins
+        else:
+            continue
+
         summaries.append({
             "name": row["name"],
-            "eligible": eligible,
-            "duel_points": sum(item["duel_points"] for item in selected),
-            "top_wins": sum(1 for item in selected if item["won"] and item["top_opponent"]),
-            "best_result": max((item["duel_points"] for item in selected), default=0),
-            "top_opponents": len({identity(item["opponent"]) for item in selected if item["top_opponent"]}),
-            "point_diff": sum(item["point_diff"] for item in selected),
-            "selected_matches": selected,
+            "priority": priority,
+            "priority_label": f"Ưu tiên {priority}",
+            "basis_matches": len(basis),
+            "straight_set_wins": sum(item["straight_sets"] for item in basis),
+            "winning_set_margin": sum(item["winning_set_margin"] for item in basis),
+            "opponents": [item["opponent"] for item in basis],
         })
 
-    eligible_rows = [item for item in summaries if item["eligible"]]
-    eligible_rows.sort(key=lambda item: (
-        -item["duel_points"], -item["top_wins"], -item["best_result"],
-        -item["top_opponents"], -item["point_diff"], item["name"].casefold(),
-    ))
-    config["rows"] = eligible_rows
-    if not eligible_rows:
+    if not summaries:
         config.update({
             "status": "no_eligible", "recipients": [], "candidates": [],
-            "note": "Chưa có tay vợt thắng người thuộc Giải Nhất, Nhì hoặc Ba.",
+            "note": "Chưa có tay vợt đáp ứng một trong ba mức ưu tiên của danh hiệu.",
+            "rows": [],
         })
         return config
 
+    active_priority = min(item["priority"] for item in summaries)
+    eligible_rows = [item for item in summaries if item["priority"] == active_priority]
+    eligible_rows.sort(key=lambda item: (
+        -item["straight_set_wins"], -item["winning_set_margin"], item["name"].casefold(),
+    ))
+    config["rows"] = eligible_rows
+
     best = eligible_rows[0]
-    tie_key = lambda item: (
-        item["duel_points"], item["top_wins"], item["best_result"],
-        item["top_opponents"], item["point_diff"],
-    )
+    tie_key = lambda item: (item["straight_set_wins"], item["winning_set_margin"])
     leaders = [item for item in eligible_rows if tie_key(item) == tie_key(best)]
     if len(leaders) > 1:
-        decided = next(
-            (item for item in leaders if identity(item["name"]) == identity(decided_name)), None
-        ) if decided_name else None
-        if decided:
-            config.update({
-                "status": "winner", "recipients": [decided], "candidates": [],
-                "note": "Đã được Ban Tổ chức phân định trong nhóm bằng thành tích.",
-            })
-        else:
-            config.update({
-                "status": "draw", "recipients": [], "candidates": leaders,
-                "note": "Các căn cứ vẫn bằng nhau; BTC cần bốc thăm công khai.",
-            })
+        config.update({
+            "status": "tied_unawarded", "recipients": [], "candidates": leaders,
+            "note": "Các tiêu chí phân định vẫn bằng nhau nên danh hiệu không được trao.",
+        })
     else:
         config.update({
             "status": "winner", "recipients": [best], "candidates": [],
-            "note": "Dẫn đầu theo điểm đối đầu và các tiêu chí phân định.",
+            "note": f"Đáp ứng {best['priority_label'].lower()} và dẫn đầu theo tiêu chí phân định.",
         })
     return config
 
@@ -581,11 +666,9 @@ def calculate_awards(matches, rankings=None, contributors=None, *, locked=False,
     _apply_achievement_decisions(rankings, decisions)
     achievement = _achievement_statistics(rankings)
 
-    head_to_head = _head_to_head_statistics(
-        matches, rankings, achievement["resolved"], decisions.get("head_to_head")
-    )
+    head_to_head = _head_to_head_statistics(matches, rankings, achievement["resolved"])
     excluded = {identity(item["name"]) for item in head_to_head.get("recipients", [])}
-    head_blocked = head_to_head["status"] in {"waiting", "draw"}
+    head_blocked = head_to_head["status"] == "waiting"
 
     active_star = _active_star_statistics(
         rankings, excluded, blocked=head_blocked, decided_name=decisions.get("active_star")
@@ -608,7 +691,7 @@ def calculate_awards(matches, rankings=None, contributors=None, *, locked=False,
     result = {
         "finalized": bool(locked),
         "status_label": "Chính thức" if locked else "Dự kiến",
-        "total_budget": 3_000_000,
+        "total_budget": achievement["budget"] + attitude["budget"],
         "allocated": achievement["allocated"] + attitude_allocated,
         "achievement": achievement,
         "attitude": attitude,
