@@ -55,8 +55,9 @@
           <span>Tải ảnh minh chứng lên Google Drive <small>(tối đa 6 ảnh, mỗi ảnh 12 MB)</small></span>
           <input type="file" name="evidence_files" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple data-evidence-files>
         </label>
-        <p class="upload-help">Chọn ảnh trước/sau trận. Ảnh sẽ được tải vào thư mục của đúng tháng khi bạn bấm gửi kết quả.</p>
-        <div class="upload-status" data-upload-status hidden></div>
+        <p class="upload-help">Bạn có thể chọn ảnh nhiều lần, mỗi lần một hoặc nhiều ảnh. Ảnh đã chọn được giữ lại và sẽ được tải vào thư mục của đúng tháng khi bạn bấm gửi kết quả.</p>
+        <ul class="evidence-list" data-evidence-list aria-label="Ảnh minh chứng đã chọn" hidden></ul>
+        <div class="upload-status" data-upload-status role="status" aria-live="polite" hidden></div>
       </div>
       <label class="full-field"><span>Hoặc dán link minh chứng <small>(mỗi link một dòng)</small></span><textarea name="evidence_urls" rows="3" placeholder="https://drive.google.com/..."></textarea></label>
       <label class="full-field"><span>Ghi chú cho Ban Tổ chức</span><textarea name="notes" rows="3" placeholder="Nội dung cần BTC lưu ý (nếu có)"></textarea></label>

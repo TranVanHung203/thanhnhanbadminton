@@ -61,6 +61,7 @@ body{background:linear-gradient(180deg,#f7fcff 0,#eef8fd 100%)}
 .segmented b{font-size:14px}.segmented small{font-size:12px}
 .set-row>b,.set-row label{font-size:12px}.set-row label{min-width:0}.set-row input{min-width:0}
 .upload-help,.upload-status{font-size:13px;line-height:1.55}
+.evidence-list{list-style:none;padding:0;margin:12px 0 0}.evidence-list li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.evidence-list li span{flex:1;min-width:0;overflow-wrap:anywhere}.evidence-list button{flex-shrink:0;min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--red);cursor:pointer}.evidence-list button:disabled{opacity:.5;cursor:wait}
 .form-errors{font-size:14px}.form-footnote{font-size:12px;line-height:1.55}
 .form-aside li,.aside-note b{font-size:13px}.aside-note p{font-size:12px;line-height:1.6}
 

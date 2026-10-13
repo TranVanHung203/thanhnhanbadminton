@@ -58,16 +58,65 @@ syncResultFields();
 const form = document.querySelector('#match-form');
 const evidenceInput = document.querySelector('[data-evidence-files]');
 const uploadStatus = document.querySelector('[data-upload-status]');
+const evidenceList = document.querySelector('[data-evidence-list]');
+let selectedEvidence = [];
+let evidenceBusy = false;
+
+function renderEvidence(message = '') {
+  if (!evidenceList || !uploadStatus) return;
+  evidenceList.replaceChildren();
+  selectedEvidence.forEach((file, index) => {
+    const item = document.createElement('li');
+    const name = document.createElement('span');
+    name.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = 'Xóa';
+    remove.setAttribute('aria-label', `Xóa ảnh ${file.name}`);
+    remove.disabled = evidenceBusy;
+    remove.addEventListener('click', () => {
+      if (evidenceBusy) return;
+      selectedEvidence.splice(index, 1);
+      renderEvidence();
+    });
+    item.append(name, remove);
+    evidenceList.append(item);
+  });
+  evidenceList.hidden = selectedEvidence.length === 0;
+  uploadStatus.hidden = !selectedEvidence.length && !message;
+  uploadStatus.className = message ? 'upload-status error' : 'upload-status';
+  uploadStatus.textContent = [
+    selectedEvidence.length ? `Đã chọn ${selectedEvidence.length}/6 ảnh. Ảnh sẽ được tải lên khi gửi kết quả.` : '',
+    message,
+  ].filter(Boolean).join(' ');
+}
 
 evidenceInput?.addEventListener('change', () => {
-  const count = evidenceInput.files.length;
-  uploadStatus.hidden = count === 0;
-  uploadStatus.className = 'upload-status';
-  uploadStatus.textContent = count ? `Đã chọn ${count} ảnh. Ảnh sẽ được tải lên khi gửi kết quả.` : '';
+  if (evidenceBusy) return;
+  const messages = [];
+  for (const file of Array.from(evidenceInput.files || [])) {
+    if (selectedEvidence.some((item) => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified)) continue;
+    if (file.size > 12 * 1024 * 1024) {
+      messages.push(`${file.name} vượt quá giới hạn 12 MB.`);
+    } else if (selectedEvidence.length >= 6) {
+      messages.push('Chỉ được chọn tối đa 6 ảnh minh chứng. Hãy xóa ảnh cũ trước khi thêm ảnh khác.');
+      break;
+    } else {
+      selectedEvidence.push(file);
+    }
+  }
+  evidenceInput.value = '';
+  renderEvidence(messages.join(' '));
+});
+
+form?.addEventListener('reset', () => {
+  selectedEvidence = [];
+  if (evidenceInput) evidenceInput.value = '';
+  renderEvidence();
 });
 
 async function uploadEvidence() {
-  const files = Array.from(evidenceInput?.files || []);
+  const files = [...selectedEvidence];
   if (!files.length) return;
   if (files.length > 6) throw new Error('Mỗi lần chỉ được chọn tối đa 6 ảnh minh chứng.');
   const oversized = files.find((file) => file.size > 12 * 1024 * 1024);
@@ -92,17 +141,23 @@ async function uploadEvidence() {
   const currentUrls = textarea.value.split('\n').map((item) => item.trim()).filter(Boolean);
   const uploadedUrls = result.files.map((item) => item.url);
   textarea.value = [...currentUrls, ...uploadedUrls].join('\n');
-  evidenceInput.value = '';
+  selectedEvidence = [];
+  renderEvidence();
+  uploadStatus.hidden = false;
   uploadStatus.className = 'upload-status';
   uploadStatus.textContent = `Đã tải ${uploadedUrls.length} ảnh lên Google Drive thành công.`;
 }
 
 form?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (evidenceBusy) return;
   const submit = form.querySelector('[type="submit"]');
   const errorsBox = document.querySelector('[data-form-errors]');
   submit.disabled = true;
-  submit.textContent = evidenceInput?.files.length ? 'Đang tải ảnh...' : 'Đang gửi...';
+  evidenceBusy = true;
+  if (evidenceInput) evidenceInput.disabled = true;
+  evidenceList?.querySelectorAll('button').forEach((button) => { button.disabled = true; });
+  submit.textContent = selectedEvidence.length ? 'Đang tải ảnh...' : 'Đang gửi...';
   errorsBox.hidden = true;
 
   try {
@@ -130,6 +185,9 @@ form?.addEventListener('submit', async (event) => {
     errorsBox.textContent = error.message || 'Không kết nối được máy chủ. Vui lòng thử lại.';
     errorsBox.hidden = false;
   } finally {
+    evidenceBusy = false;
+    if (evidenceInput) evidenceInput.disabled = false;
+    evidenceList?.querySelectorAll('button').forEach((button) => { button.disabled = false; });
     submit.disabled = false;
     submit.innerHTML = 'Gửi kết quả để BTC duyệt <span>→</span>';
   }
