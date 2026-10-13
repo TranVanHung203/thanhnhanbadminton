@@ -40,6 +40,7 @@
       <a href="{{ url_for('public.submit_result') }}" class="{{ 'active' if request.endpoint == 'public.submit_result' }}">Nhập kết quả</a>
       <a href="{{ url_for('public.results') }}" class="{{ 'active' if request.endpoint == 'public.results' }}">Bảng xếp hạng</a>
       <a href="{{ url_for('public.rules') }}" class="{{ 'active' if request.endpoint == 'public.rules' }}">Thể lệ</a>
+      <a href="{{ url_for('forum.index') }}" class="{{ 'active' if request.blueprint == 'forum' }}">Diễn đàn</a>
       <a href="{{ url_for('admin.dashboard') }}" class="nav-admin">Quản trị</a>
     </nav>
   </header>

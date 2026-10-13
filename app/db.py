@@ -36,3 +36,5 @@ def init_indexes():
     db.matches.create_index([("match_code", ASCENDING)], unique=True, sparse=True)
     db.seasons.create_index([("month", ASCENDING)], unique=True)
     db.audit_logs.create_index([("created_at", DESCENDING)])
+    db.forum_posts.create_index([("created_at", DESCENDING), ("_id", DESCENDING)])
+    db.forum_comments.create_index([("post_id", ASCENDING), ("created_at", DESCENDING), ("_id", DESCENDING)])

@@ -7,6 +7,15 @@
 - Ban Tổ chức duyệt/từ chối/xóa bản ghi và khóa từng mùa giải.
 - Tháng hiện tại tự động trở thành mùa giải mặc định; các tháng cũ vẫn có trong bộ lọc lịch sử.
 - Tự động thống kê cơ cấu thưởng thành tích và ba danh hiệu thưởng thái độ theo từng tháng.
+- Diễn đàn `/dien-dan`: đăng bài và bình luận công khai, bắt buộc nhập tên; không cần tài khoản.
+
+## Diễn đàn
+
+Bài đăng được lưu trong collection `forum_posts` (tên, tiêu đề, nội dung, thời gian).
+Bình luận được lưu trong `forum_comments` (tên, nội dung, thời gian, `post_id` liên kết bài đăng).
+Các collection và index được tạo tự động trong MongoDB hiện có, không cần cấu hình thêm.
+Trang hiển thị 20 bài đăng hoặc 50 bình luận mỗi trang, mới nhất trước. Tên tối đa 80 ký tự,
+tiêu đề 160 ký tự, bài viết 5.000 ký tự và bình luận 2.000 ký tự. Tên do người gửi tự nhập.
 
 ## Công nghệ
 

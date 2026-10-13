@@ -13,8 +13,10 @@ def create_app(test_config=None):
     from .routes.admin import admin_bp
     from .routes.api import api_bp
     from .routes.public import public_bp
+    from .routes.forum import forum_bp
 
     app.register_blueprint(public_bp)
+    app.register_blueprint(forum_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 

@@ -43,6 +43,7 @@ function setup() {
       return context.response;
     },
     setTimeout: () => {},
+    window: {addEventListener() {}},
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../app/static/js/app.js'), 'utf8'), context);
   const choose = (...files) => {

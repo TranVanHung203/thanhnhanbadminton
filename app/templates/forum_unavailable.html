@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Diễn đàn · Thành Nhân Badminton{% endblock %}
+{% block content %}
+<section class="section-shell narrow forum-thread">
+  <a href="{{ url_for('forum.index') }}">← Về diễn đàn</a>
+  <div class="forum-errors" role="alert">Chưa kết nối được cơ sở dữ liệu. Vui lòng tải lại trang và thử lại sau.</div>
+  {% if values %}<div class="forum-card"><h2>Nội dung bạn vừa nhập</h2><p>Bạn có thể sao chép nội dung để gửi lại khi kết nối ổn định.</p><b>{{ values.get('author_name', '') }}</b><div class="forum-body">{{ values.get('content', '') }}</div></div>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Diễn đàn · Thành Nhân Badminton{% endblock %}
+{% block content %}
+<section class="page-intro section-shell">
+  <div class="eyebrow"><span></span> CỘNG ĐỒNG THÀNH NHÂN</div>
+  <h1>Diễn đàn <em>cầu lông</em></h1>
+  <p>Rủ bạn ra sân, chia sẻ kinh nghiệm và trò chuyện sau mỗi trận đấu.</p>
+</section>
+<section class="section-shell forum-layout">
+  <div>
+    <div class="forum-heading"><h2>Bài đăng mới nhất</h2><a href="#new-post">+ Viết bài</a></div>
+    {% if db_error %}<p class="forum-errors" role="alert">{{ db_error }}</p>{% endif %}
+    {% for post in posts %}
+    <article class="forum-card">
+      <div class="forum-meta"><b>{{ post.author_name }}</b><time>{{ post.created_at|forum_time }}</time></div>
+      <h2><a href="{{ url_for('forum.thread', post_id=post._id|string) }}">{{ post.title }}</a></h2>
+      <p class="forum-excerpt">{{ post.content[:240] }}{% if post.content|length > 240 %}…{% endif %}</p>
+      <a class="forum-read" href="{{ url_for('forum.thread', post_id=post._id|string) }}">Xem bài &amp; bình luận →</a>
+    </article>
+    {% else %}{% if not db_error %}<div class="empty-state"><h3>Chưa có bài đăng</h3><p>Hãy mở đầu cuộc trò chuyện với mọi người!</p><a href="#new-post">Viết bài đầu tiên →</a></div>{% endif %}{% endfor %}
+    <nav class="forum-pagination" aria-label="Trang bài đăng">
+      {% if page > 1 %}<a href="{{ url_for('forum.index', page=page-1) }}">← Trang trước</a>{% endif %}
+      <span>Trang {{ page }}</span>
+      {% if has_next %}<a href="{{ url_for('forum.index', page=page+1) }}">Trang sau →</a>{% endif %}
+    </nav>
+  </div>
+  <aside class="forum-compose" id="new-post">
+    <small>CHIA SẺ VỚI MỌI NGƯỜI</small><h2>Viết bài mới</h2>
+    <p>Nhập tên để mọi người biết ai đang chia sẻ.</p>
+    {% if errors %}<div class="forum-errors" role="alert">{% for error in errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+    <form method="post" action="{{ url_for('forum.index') }}" data-forum-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label class="full-field"><span>Tên của bạn *</span><input name="author_name" maxlength="80" autocomplete="name" value="{{ values.get('author_name', '') }}" required></label>
+      <label class="full-field"><span>Tiêu đề *</span><input name="title" maxlength="160" placeholder="Bạn muốn chia sẻ điều gì?" value="{{ values.get('title', '') }}" required></label>
+      <label class="full-field"><span>Nội dung *</span><textarea name="content" rows="7" maxlength="5000" placeholder="Viết câu chuyện, câu hỏi hoặc lời hẹn ra sân…" required>{{ values.get('content', '') }}</textarea></label>
+      <button class="button button-primary" type="submit">Đăng bài →</button>
+      <p class="forum-note">Bài đăng và tên của bạn sẽ hiển thị công khai.</p>
+    </form>
+  </aside>
+</section>
+{% endblock %}

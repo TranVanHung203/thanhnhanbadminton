@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · Diễn đàn{% endblock %}
+{% block content %}
+<section class="section-shell narrow forum-thread">
+  <a class="forum-back" href="{{ url_for('forum.index') }}">← Về diễn đàn</a>
+  <article class="forum-card forum-post">
+    <div class="forum-meta"><b>{{ post.author_name }}</b><time>{{ post.created_at|forum_time }}</time></div>
+    <h1>{{ post.title }}</h1><div class="forum-body">{{ post.content }}</div>
+  </article>
+  <section class="forum-compose" id="reply">
+    <h2>Tham gia thảo luận</h2>
+    {% if errors %}<div class="forum-errors" role="alert">{% for error in errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+    <form method="post" action="{{ url_for('forum.thread', post_id=post._id|string) }}" data-forum-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label class="full-field"><span>Tên của bạn *</span><input name="author_name" maxlength="80" autocomplete="name" value="{{ values.get('author_name', '') }}" required></label>
+      <label class="full-field"><span>Bình luận *</span><textarea name="content" rows="4" maxlength="2000" placeholder="Chia sẻ ý kiến của bạn…" required>{{ values.get('content', '') }}</textarea></label>
+      <button class="button button-primary" type="submit">Gửi bình luận →</button>
+    </form>
+  </section>
+  <div class="forum-heading"><h2>{{ comment_count }} bình luận</h2><span>Mới nhất trước</span></div>
+  {% for comment in comments %}
+  <article class="forum-card forum-comment" id="comment-{{ comment._id }}">
+    <div class="forum-meta"><b>{{ comment.author_name }}</b><time>{{ comment.created_at|forum_time }}</time></div>
+    <div class="forum-body">{{ comment.content }}</div>
+  </article>
+  {% else %}<p class="empty-inline">Chưa có bình luận. Hãy là người đầu tiên chia sẻ ý kiến!</p>{% endfor %}
+  <nav class="forum-pagination" aria-label="Trang bình luận">
+    {% if page > 1 %}<a href="{{ url_for('forum.thread', post_id=post._id|string, page=page-1) }}">← Trang trước</a>{% endif %}
+    <span>Trang {{ page }}</span>
+    {% if has_next %}<a href="{{ url_for('forum.thread', post_id=post._id|string, page=page+1) }}">Trang sau →</a>{% endif %}
+  </nav>
+</section>
+{% endblock %}

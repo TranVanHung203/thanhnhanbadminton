@@ -364,3 +364,18 @@ if (drawApp) {
 }
 
 setTimeout(() => document.querySelectorAll('.flash').forEach((item) => item.remove()), 4500);
+
+document.querySelectorAll('[data-forum-form]').forEach((forumForm) => {
+  forumForm.addEventListener('submit', () => {
+    const button = forumForm.querySelector('[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Đang gửi…';
+  });
+});
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  document.querySelectorAll('[data-forum-form] [type="submit"]').forEach((button) => {
+    button.disabled = false;
+    button.textContent = button.form.elements.title ? 'Đăng bài →' : 'Gửi bình luận →';
+  });
+});
