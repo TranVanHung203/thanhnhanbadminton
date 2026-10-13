@@ -6,6 +6,12 @@
   <article class="forum-card forum-post">
     <div class="forum-meta"><b>{{ post.author_name }}</b><time>{{ post.created_at|forum_time }}</time></div>
     <h1>{{ post.title }}</h1><div class="forum-body">{{ post.content }}</div>
+    {% if is_forum_owner(post) %}
+    <form class="forum-delete" method="post" action="{{ url_for('forum.delete_post', post_id=post._id|string) }}" data-forum-delete="Xóa bài đăng này? Bài và phần thảo luận bên dưới sẽ không còn hiển thị trên diễn đàn.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit">Xóa bài đăng</button>
+    </form>
+    {% endif %}
   </article>
   <section class="forum-compose" id="reply">
     <h2>Tham gia thảo luận</h2>
@@ -15,6 +21,7 @@
       <label class="full-field"><span>Tên của bạn *</span><input name="author_name" maxlength="80" autocomplete="name" value="{{ values.get('author_name', '') }}" required></label>
       <label class="full-field"><span>Bình luận *</span><textarea name="content" rows="4" maxlength="2000" placeholder="Chia sẻ ý kiến của bạn…" required>{{ values.get('content', '') }}</textarea></label>
       <button class="button button-primary" type="submit">Gửi bình luận →</button>
+      <p class="forum-note">Bạn có thể xóa bình luận bằng trình duyệt đã gửi. Hãy giữ cookie để giữ quyền xóa.</p>
     </form>
   </section>
   <div class="forum-heading"><h2>{{ comment_count }} bình luận</h2><span>Mới nhất trước</span></div>
@@ -22,6 +29,12 @@
   <article class="forum-card forum-comment" id="comment-{{ comment._id }}">
     <div class="forum-meta"><b>{{ comment.author_name }}</b><time>{{ comment.created_at|forum_time }}</time></div>
     <div class="forum-body">{{ comment.content }}</div>
+    {% if is_forum_owner(comment) %}
+    <form class="forum-delete" method="post" action="{{ url_for('forum.delete_comment', post_id=post._id|string, comment_id=comment._id|string) }}" data-forum-delete="Xóa bình luận này?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit">Xóa bình luận</button>
+    </form>
+    {% endif %}
   </article>
   {% else %}<p class="empty-inline">Chưa có bình luận. Hãy là người đầu tiên chia sẻ ý kiến!</p>{% endfor %}
   <nav class="forum-pagination" aria-label="Trang bình luận">

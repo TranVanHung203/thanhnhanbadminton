@@ -372,10 +372,20 @@ document.querySelectorAll('[data-forum-form]').forEach((forumForm) => {
     button.textContent = 'Đang gửi…';
   });
 });
+document.querySelectorAll('[data-forum-delete]').forEach((deleteForm) => {
+  deleteForm.addEventListener('submit', (event) => {
+    if (!window.confirm(deleteForm.dataset.forumDelete)) {
+      event.preventDefault();
+      return;
+    }
+    deleteForm.querySelector('[type="submit"]').disabled = true;
+  });
+});
 window.addEventListener('pageshow', (event) => {
   if (!event.persisted) return;
   document.querySelectorAll('[data-forum-form] [type="submit"]').forEach((button) => {
     button.disabled = false;
     button.textContent = button.form.elements.title ? 'Đăng bài →' : 'Gửi bình luận →';
   });
+  document.querySelectorAll('[data-forum-delete] [type="submit"]').forEach((button) => { button.disabled = false; });
 });

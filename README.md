@@ -17,6 +17,20 @@ Các collection và index được tạo tự động trong MongoDB hiện có, 
 Trang hiển thị 20 bài đăng hoặc 50 bình luận mỗi trang, mới nhất trước. Tên tối đa 80 ký tự,
 tiêu đề 160 ký tự, bài viết 5.000 ký tự và bình luận 2.000 ký tự. Tên do người gửi tự nhập.
 
+Quyền xóa được nhận diện bằng cookie riêng của trình duyệt, lưu tối đa một năm và gia hạn khi
+truy cập diễn đàn. MongoDB chỉ lưu hash mã nhận diện (`owner_hash`); cùng tên không có nghĩa
+là cùng chủ sở hữu. Chủ nội dung có nút xóa và máy chủ kiểm tra quyền ở mỗi yêu cầu.
+Xóa bài/bình luận đánh dấu `deleted_at` để ẩn khỏi diễn đàn; xóa bài cũng ẩn toàn bộ thảo luận
+của bài đó. Chủ bài không được xóa riêng bình luận của người khác.
+Đổi trình duyệt, đổi thiết bị hoặc xóa cookie sẽ mất quyền xóa. Bài/bình luận cũ chưa có
+`owner_hash` không thể xác định tác giả, nên không tự cấp quyền xóa theo tên.
+
+Các trang công khai có băng rôn diễn đàn nổi dưới menu. Mỗi lượt chọn ngẫu nhiên trong
+50 bài mới nhất còn hiển thị, chạy chữ một lần rồi ẩn; chờ 20 giây sau khi ẩn mới hiện
+lượt tiếp theo. Bấm băng rôn mở trực tiếp bài viết. Danh sách được làm mới mỗi lượt qua
+`/api/forum/notices`, bỏ qua bài đang đọc và tránh lặp bài liên tiếp nếu có nhiều bài.
+Tab đang ẩn sẽ tạm dừng thông báo; chế độ giảm chuyển động hiển thị chữ tĩnh trong 8 giây.
+
 ## Công nghệ
 
 - Python 3.11 + Flask

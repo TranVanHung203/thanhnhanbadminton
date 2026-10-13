@@ -16,6 +16,12 @@
       <h2><a href="{{ url_for('forum.thread', post_id=post._id|string) }}">{{ post.title }}</a></h2>
       <p class="forum-excerpt">{{ post.content[:240] }}{% if post.content|length > 240 %}…{% endif %}</p>
       <a class="forum-read" href="{{ url_for('forum.thread', post_id=post._id|string) }}">Xem bài &amp; bình luận →</a>
+      {% if is_forum_owner(post) %}
+      <form class="forum-delete" method="post" action="{{ url_for('forum.delete_post', post_id=post._id|string) }}" data-forum-delete="Xóa bài đăng này? Bài và phần thảo luận bên dưới sẽ không còn hiển thị trên diễn đàn.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Xóa bài đăng</button>
+      </form>
+      {% endif %}
     </article>
     {% else %}{% if not db_error %}<div class="empty-state"><h3>Chưa có bài đăng</h3><p>Hãy mở đầu cuộc trò chuyện với mọi người!</p><a href="#new-post">Viết bài đầu tiên →</a></div>{% endif %}{% endfor %}
     <nav class="forum-pagination" aria-label="Trang bài đăng">
@@ -35,6 +41,7 @@
       <label class="full-field"><span>Nội dung *</span><textarea name="content" rows="7" maxlength="5000" placeholder="Viết câu chuyện, câu hỏi hoặc lời hẹn ra sân…" required>{{ values.get('content', '') }}</textarea></label>
       <button class="button button-primary" type="submit">Đăng bài →</button>
       <p class="forum-note">Bài đăng và tên của bạn sẽ hiển thị công khai.</p>
+      <p class="forum-note">Bạn có thể xóa nội dung của mình bằng trình duyệt đã đăng. Hãy giữ cookie để giữ quyền xóa.</p>
     </form>
   </aside>
 </section>

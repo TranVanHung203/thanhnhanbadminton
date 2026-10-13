@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
+import re
 from secrets import compare_digest, token_urlsafe
 
 from bson import ObjectId
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
 from pymongo.errors import PyMongoError
 
 from ..db import get_db
@@ -11,6 +13,32 @@ from ..db import get_db
 forum_bp = Blueprint("forum", __name__, url_prefix="/dien-dan")
 PAGE_SIZE = 20
 COMMENT_PAGE_SIZE = 50
+VISIBLE = {"deleted_at": {"$exists": False}}
+OWNER_COOKIE = "forum_owner"
+
+
+@forum_bp.before_request
+def identify_owner():
+    token = request.cookies.get(OWNER_COOKIE, "")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
+        token = token_urlsafe(32)
+    g.forum_owner_token = token
+    g.forum_owner = sha256(token.encode()).hexdigest()
+
+
+@forum_bp.after_request
+def remember_owner(response):
+    local_host = request.host.split(":", 1)[0] in {"localhost", "127.0.0.1"}
+    response.set_cookie(OWNER_COOKIE, g.forum_owner_token, max_age=365 * 24 * 60 * 60,
+                        httponly=True, secure=request.is_secure or not local_host,
+                        samesite="Lax", path="/dien-dan")
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@forum_bp.context_processor
+def ownership_context():
+    return {"is_forum_owner": lambda item: item.get("owner_hash") == g.forum_owner}
 
 
 def csrf_token():
@@ -56,7 +84,7 @@ def listing(values=None, errors=None, status=200):
     page = page_number()
     db_error = None
     try:
-        posts = list(get_db().forum_posts.find({}).sort([("created_at", -1), ("_id", -1)]).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE + 1))
+        posts = list(get_db().forum_posts.find(VISIBLE).sort([("created_at", -1), ("_id", -1)]).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE + 1))
     except PyMongoError:
         current_app.logger.exception("Không thể đọc bài đăng diễn đàn")
         posts, db_error, status = [], "Chưa kết nối được cơ sở dữ liệu. Vui lòng thử lại sau.", 503
@@ -74,7 +102,7 @@ def index():
     if errors:
         return listing(values, errors, 422)
     try:
-        result = get_db().forum_posts.insert_one({**values, "created_at": datetime.now(timezone.utc)})
+        result = get_db().forum_posts.insert_one({**values, "owner_hash": g.forum_owner, "created_at": datetime.now(timezone.utc)})
     except PyMongoError:
         current_app.logger.exception("Không thể lưu bài đăng diễn đàn")
         return listing(values, ["Chưa lưu được bài đăng. Vui lòng thử lại."], 503)
@@ -92,7 +120,7 @@ def thread(post_id):
     page = page_number()
     try:
         db = get_db()
-        post = db.forum_posts.find_one({"_id": ObjectId(post_id)})
+        post = db.forum_posts.find_one({"_id": ObjectId(post_id), **VISIBLE})
         if not post:
             abort(404)
         if request.method == "POST":
@@ -101,15 +129,15 @@ def thread(post_id):
                 status = 422
             else:
                 try:
-                    result = db.forum_comments.insert_one({**values, "post_id": post["_id"], "created_at": datetime.now(timezone.utc)})
+                    result = db.forum_comments.insert_one({**values, "owner_hash": g.forum_owner, "post_id": post["_id"], "created_at": datetime.now(timezone.utc)})
                 except PyMongoError:
                     current_app.logger.exception("Không thể lưu bình luận")
                     errors, status = ["Chưa lưu được bình luận. Vui lòng thử lại."], 503
                 else:
                     flash("Đã gửi bình luận.", "success")
                     return redirect(url_for("forum.thread", post_id=post_id, _anchor=f"comment-{result.inserted_id}"), code=303)
-        comments = list(db.forum_comments.find({"post_id": post["_id"]}).sort([("created_at", -1), ("_id", -1)]).skip((page - 1) * COMMENT_PAGE_SIZE).limit(COMMENT_PAGE_SIZE + 1))
-        count = db.forum_comments.count_documents({"post_id": post["_id"]})
+        comments = list(db.forum_comments.find({"post_id": post["_id"], **VISIBLE}).sort([("created_at", -1), ("_id", -1)]).skip((page - 1) * COMMENT_PAGE_SIZE).limit(COMMENT_PAGE_SIZE + 1))
+        count = db.forum_comments.count_documents({"post_id": post["_id"], **VISIBLE})
     except PyMongoError:
         current_app.logger.exception("Không thể truy cập thảo luận diễn đàn")
         if request.method == "POST":
@@ -119,3 +147,46 @@ def thread(post_id):
                            comment_count=count, page=page, has_next=len(comments) > COMMENT_PAGE_SIZE,
                            values=values, errors=errors, csrf_token=csrf_token(),
                            meta_title=f"{post['title']} · Diễn đàn"), status
+
+
+@forum_bp.post("/<post_id>/xoa")
+def delete_post(post_id):
+    check_csrf()
+    if not ObjectId.is_valid(post_id):
+        abort(404)
+    try:
+        result = get_db().forum_posts.update_one(
+            {"_id": ObjectId(post_id), "owner_hash": g.forum_owner, **VISIBLE},
+            {"$set": {"deleted_at": datetime.now(timezone.utc)}},
+        )
+        if not result.matched_count:
+            abort(403, description="Bạn chỉ được xóa bài do mình đăng trên trình duyệt này.")
+    except PyMongoError:
+        current_app.logger.exception("Không thể xóa bài đăng")
+        flash("Chưa xóa được bài đăng. Vui lòng thử lại.", "error")
+        return redirect(url_for("forum.thread", post_id=post_id), code=303)
+    flash("Đã xóa bài đăng khỏi diễn đàn.", "success")
+    return redirect(url_for("forum.index"), code=303)
+
+
+@forum_bp.post("/<post_id>/binh-luan/<comment_id>/xoa")
+def delete_comment(post_id, comment_id):
+    check_csrf()
+    if not ObjectId.is_valid(post_id) or not ObjectId.is_valid(comment_id):
+        abort(404)
+    try:
+        db = get_db()
+        if not db.forum_posts.find_one({"_id": ObjectId(post_id), **VISIBLE}):
+            abort(404)
+        result = db.forum_comments.update_one(
+            {"_id": ObjectId(comment_id), "post_id": ObjectId(post_id), "owner_hash": g.forum_owner, **VISIBLE},
+            {"$set": {"deleted_at": datetime.now(timezone.utc)}},
+        )
+        if not result.matched_count:
+            abort(403, description="Bạn chỉ được xóa bình luận do mình gửi trên trình duyệt này.")
+    except PyMongoError:
+        current_app.logger.exception("Không thể xóa bình luận")
+        flash("Chưa xóa được bình luận. Vui lòng thử lại.", "error")
+        return redirect(url_for("forum.thread", post_id=post_id), code=303)
+    flash("Đã xóa bình luận.", "success")
+    return redirect(url_for("forum.thread", post_id=post_id), code=303)

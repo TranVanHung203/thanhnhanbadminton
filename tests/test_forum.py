@@ -38,8 +38,23 @@ class Collection:
         self.items.append(document)
         return SimpleNamespace(inserted_id=document["_id"])
 
-    def find(self, query):
-        return Cursor(item for item in self.items if all(item.get(key) == value for key, value in query.items()))
+    def find(self, query, projection=None):
+        def matches(item):
+            for key, value in query.items():
+                if isinstance(value, dict) and "$exists" in value:
+                    if (key in item) != value["$exists"]:
+                        return False
+                elif item.get(key) != value:
+                    return False
+            return True
+        return Cursor(item for item in self.items if matches(item))
+
+    def update_one(self, query, update):
+        item = self.find_one(query)
+        if item is None:
+            return SimpleNamespace(matched_count=0)
+        item.update(update["$set"])
+        return SimpleNamespace(matched_count=1)
 
     def find_one(self, query):
         return next(iter(self.find(query)), None)
@@ -157,3 +172,120 @@ def test_comment_database_error_preserves_form(forum, monkeypatch):
     assert response.status_code == 503
     assert "Giữ bản nháp" in response.get_data(as_text=True)
     assert not db.forum_comments.items
+
+
+def other_client(client):
+    other = client.application.test_client()
+    other.get("/dien-dan")
+    with other.session_transaction() as session:
+        token = session["forum_csrf"]
+    return other, token
+
+
+def test_owner_can_delete_post_and_thread_is_hidden(forum):
+    client, db, token = forum
+    thread = new_post(client, token).headers["Location"]
+    client.post(thread, data={"csrf_token": token, "author_name": "Lan", "content": "Hello"})
+    assert "Xóa bài đăng" in client.get(thread).get_data(as_text=True)
+    assert client.post(thread + "/xoa", data={"csrf_token": token}).status_code == 303
+    assert "deleted_at" in db.forum_posts.items[0]
+    assert client.get(thread).status_code == 404
+    assert "Hẹn ra sân" not in client.get("/dien-dan").get_data(as_text=True)
+    assert client.post(thread, data={"csrf_token": token, "author_name": "Lan", "content": "Hello"}).status_code == 404
+    assert len(db.forum_comments.items) == 1
+
+
+def test_only_comment_owner_can_delete_even_when_post_owner_requests_it(forum):
+    client, db, token = forum
+    thread = new_post(client, token).headers["Location"]
+    other, other_token = other_client(client)
+    other.post(thread, data={"csrf_token": other_token, "author_name": "Hùng Nguyễn", "content": "Comment riêng"})
+    comment = db.forum_comments.items[0]
+    endpoint = f"{thread}/binh-luan/{comment['_id']}/xoa"
+    assert "Xóa bình luận" not in client.get(thread).get_data(as_text=True)
+    assert "Xóa bình luận" in other.get(thread).get_data(as_text=True)
+    assert client.post(endpoint, data={"csrf_token": token}).status_code == 403
+    assert "deleted_at" not in comment
+    assert other.post(endpoint, data={"csrf_token": other_token}).status_code == 303
+    html = client.get(thread).get_data(as_text=True)
+    assert "Comment riêng" not in html and "0 bình luận" in html
+
+
+def test_same_name_and_forged_or_missing_owner_cookie_cannot_delete(forum):
+    client, db, token = forum
+    thread = new_post(client, token).headers["Location"]
+    other, other_token = other_client(client)
+    new_post(other, other_token)
+    assert "Xóa bài đăng" not in other.get(thread).get_data(as_text=True)
+    assert other.post(thread + "/xoa", data={"csrf_token": other_token}).status_code == 403
+    other.set_cookie("forum_owner", "a" * 43, path="/dien-dan")
+    assert other.post(thread + "/xoa", data={"csrf_token": other_token, "owner_hash": db.forum_posts.items[0]["owner_hash"]}).status_code == 403
+    client.delete_cookie("forum_owner", path="/dien-dan")
+    assert client.post(thread + "/xoa", data={"csrf_token": token}).status_code == 403
+
+
+def test_owner_cookie_survives_session_reset(forum):
+    client, db, token = forum
+    thread = new_post(client, token).headers["Location"]
+    client.delete_cookie("session")
+    assert "Xóa bài đăng" in client.get(thread).get_data(as_text=True)
+    with client.session_transaction() as session:
+        new_token = session["forum_csrf"]
+    assert client.post(thread + "/xoa", data={"csrf_token": new_token}).status_code == 303
+
+
+def test_delete_requires_csrf_and_correct_thread(forum):
+    client, db, token = forum
+    first = new_post(client, token).headers["Location"]
+    second = new_post(client, token).headers["Location"]
+    client.post(first, data={"csrf_token": token, "author_name": "Lan", "content": "Hello"})
+    comment_id = db.forum_comments.items[0]["_id"]
+    assert client.post(first + "/xoa", data={}).status_code == 400
+    assert client.post(f"{first}/binh-luan/{comment_id}/xoa", data={}).status_code == 400
+    assert client.post(f"{second}/binh-luan/{comment_id}/xoa", data={"csrf_token": token}).status_code == 403
+    assert "deleted_at" not in db.forum_comments.items[0]
+    assert client.get(first + "/xoa").status_code == 405
+
+
+def test_old_content_does_not_grant_ownership_by_name(forum):
+    client, db, token = forum
+    legacy = db.forum_posts.insert_one({"author_name": "Hùng Nguyễn", "title": "Bài cũ", "content": "Nội dung", "created_at": datetime.now(timezone.utc)})
+    thread = f"/dien-dan/{legacy.inserted_id}"
+    assert "Xóa bài đăng" not in client.get(thread).get_data(as_text=True)
+    assert client.post(thread + "/xoa", data={"csrf_token": token}).status_code == 403
+
+
+def test_delete_database_failure_keeps_post(forum, monkeypatch):
+    client, db, token = forum
+    thread = new_post(client, token).headers["Location"]
+    def fail(*args):
+        raise PyMongoError("Disconnected")
+    monkeypatch.setattr(db.forum_posts, "update_one", fail)
+    response = client.post(thread + "/xoa", data={"csrf_token": token}, follow_redirects=True)
+    assert "Chưa xóa được bài đăng" in response.get_data(as_text=True)
+    assert "deleted_at" not in db.forum_posts.items[0]
+
+
+def test_notice_feed_links_to_visible_posts_without_private_fields(forum, monkeypatch):
+    client, db, token = forum
+    monkeypatch.setattr("app.routes.api.get_db", lambda: db)
+    first = new_post(client, token).headers["Location"]
+    second = new_post(client, token, title="Bài bị xóa").headers["Location"]
+    client.post(second + "/xoa", data={"csrf_token": token})
+    response = client.get("/api/forum/notices")
+    assert response.status_code == 200
+    posts = response.get_json()["posts"]
+    assert len(posts) == 1 and posts[0]["url"] == first
+    assert posts[0]["title"] == "Hẹn ra sân"
+    assert "owner_hash" not in posts[0] and "content" not in posts[0]
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_notice_feed_database_failure_returns_empty_list(forum, monkeypatch):
+    client, db, token = forum
+    def fail():
+        raise PyMongoError("Disconnected")
+    monkeypatch.setattr("app.routes.api.get_db", fail)
+    response = client.get("/api/forum/notices")
+    assert response.status_code == 503
+    assert response.get_json() == {"posts": []}

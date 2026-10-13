@@ -3,6 +3,8 @@ from secrets import token_hex
 
 from flask import Blueprint, current_app, jsonify, request
 from googleapiclient.errors import HttpError
+from pymongo.errors import PyMongoError
+from flask import url_for
 
 from ..db import get_db
 from ..services.ranking import calculate_awards, calculate_contributors, calculate_rankings, summarize
@@ -16,6 +18,26 @@ from ..services.google_drive import (
 
 
 api_bp = Blueprint("api", __name__)
+
+
+@api_bp.get("/forum/notices")
+def forum_notices():
+    try:
+        posts = get_db().forum_posts.find(
+            {"deleted_at": {"$exists": False}},
+            {"title": 1, "author_name": 1},
+        ).sort([("created_at", -1), ("_id", -1)]).limit(50)
+        response = jsonify({"posts": [
+            {"id": str(post["_id"]), "title": post["title"], "author_name": post["author_name"],
+             "url": url_for("forum.thread", post_id=str(post["_id"]))}
+            for post in posts
+        ]})
+    except PyMongoError:
+        current_app.logger.exception("Không thể đọc thông báo diễn đàn")
+        response = jsonify({"posts": []})
+        response.status_code = 503
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @api_bp.post("/evidence")
