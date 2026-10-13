@@ -1,15 +1,21 @@
 from datetime import datetime, timedelta
 
-from app.services.ranking import calculate_awards, calculate_contributors, calculate_rankings
+from app.services.ranking import (
+    _head_to_head_statistics, calculate_awards, calculate_contributors,
+    calculate_rankings, match_play_order,
+)
 
 
 def make_match(number, player_a, player_b, winner="a", stage="group"):
+    played_at = datetime(2026, 9, 1) + timedelta(minutes=number)
     sets = [{"a": 15, "b": 10}, {"a": 15, "b": 11}]
     if winner == "b":
         sets = [{"a": 10, "b": 15}, {"a": 11, "b": 15}]
     return {
         "status": "approved",
         "submitted_at": datetime(2026, 9, 1) + timedelta(minutes=number),
+        "played_date": played_at.strftime("%Y-%m-%d"),
+        "played_time": played_at.strftime("%H:%M"),
         "player_a": player_a,
         "player_b": player_b,
         "referee_1": f"Trọng tài {number}A",
@@ -31,6 +37,53 @@ def test_first_three_are_official_next_five_are_unofficial():
     assert an["official_points"] == 9
     assert an["unofficial_matches"] == 5
     assert an["stars"] == 15
+
+
+def test_late_submission_keeps_win_in_first_three_by_played_date_and_time():
+    matches = [make_match(i, "Linh", f"Đối thủ {i}", winner="a" if i <= 3 else "b")
+               for i in range(1, 9)]
+    for i, match in enumerate(matches, start=1):
+        match["played_date"] = "2026-10-04" if i <= 2 else "2026-10-11"
+        match["played_time"] = f"14:{i:02d}"
+    # Trận thắng thứ ba được gửi sau cả năm trận thua.
+    matches[2]["submitted_at"] = datetime(2026, 10, 12)
+    linh = find(calculate_rankings(list(reversed(matches))), "Linh")
+    assert linh["official_matches"] == 3
+    assert linh["official_wins"] == 3
+    assert linh["official_losses"] == 0
+    assert linh["official_points"] == 9
+    assert linh["unofficial_matches"] == 5
+    assert linh["stars"] == 5
+
+
+def test_changing_submission_times_does_not_change_rankings():
+    matches = [make_match(i, "An", f"Đối thủ {i}", winner="a" if i <= 3 else "b")
+               for i in range(1, 10)]
+    expected = calculate_rankings(matches)
+    for i, match in enumerate(matches):
+        match["submitted_at"] = datetime(2026, 10, 15) - timedelta(days=i)
+    assert calculate_rankings(matches) == expected
+
+
+def test_legacy_missing_time_uses_end_of_played_day_without_submission_time():
+    first = make_match(1, "An", "Bình")
+    first["played_time"] = ""
+    first["submitted_at"] = None
+    later_day = make_match(2, "An", "Cường")
+    later_day["played_date"] = "2026-09-02"
+    assert match_play_order(first) < match_play_order(later_day)
+    missing_date = make_match(3, "An", "Dũng")
+    missing_date.pop("played_date")
+    assert match_play_order(missing_date) > match_play_order(later_day)
+
+
+def test_head_to_head_ignores_ninth_played_match_even_when_submitted_first():
+    matches = [make_match(i, "An", f"Đối thủ {i}", winner="b") for i in range(1, 9)]
+    ninth = make_match(9, "An", "Vô địch")
+    ninth["submitted_at"] = datetime(2026, 8, 1)
+    rankings = [{"name": "An"}, {"name": "Vô địch", "award": "Giải Nhất"}]
+    result = _head_to_head_statistics([ninth, *matches], rankings, True)
+    assert result["status"] == "no_eligible"
 
 
 def test_final_points_are_added_without_stars():

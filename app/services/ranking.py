@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 
 from .validation import identity, match_winner
 
@@ -56,6 +57,18 @@ def _is_countable(match):
         match.get("result_status") == "paused"
         or (match.get("result_status") == "forfeit" and match.get("forfeit_reason_valid"))
     )
+
+
+def match_play_order(match):
+    """Xếp theo thời gian thi đấu; bản ghi thiếu thời gian đứng cuối."""
+    try:
+        played_at = datetime.strptime(
+            f"{match.get('played_date', '')} {match.get('played_time') or '23:59'}",
+            "%Y-%m-%d %H:%M",
+        )
+    except (TypeError, ValueError):
+        played_at = datetime.max
+    return (played_at, str(match.get("_id", "")), match.get("match_code", ""))
 
 
 def _final_tiebreak_statistics(matches, candidate_names):
@@ -219,7 +232,7 @@ def calculate_rankings(matches):
         return rows[key]
 
     approved = [m for m in matches if m.get("status") == "approved"]
-    approved.sort(key=lambda m: (m.get("submitted_at"), str(m.get("_id", ""))))
+    approved.sort(key=match_play_order)
 
     for match in approved:
         if not _is_countable(match):
@@ -431,7 +444,7 @@ def _head_to_head_statistics(matches, rankings, achievement_resolved):
     appearances = defaultdict(int)
     wins = defaultdict(list)
     approved = [m for m in matches if m.get("status") == "approved"]
-    approved.sort(key=lambda m: (m.get("submitted_at"), str(m.get("_id", ""))))
+    approved.sort(key=match_play_order)
 
     for match in approved:
         if match.get("stage") != "group" or not _is_countable(match):

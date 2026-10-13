@@ -106,7 +106,9 @@ def create_match():
 def get_results():
     month = normalize_month(request.args.get("month"), current_month())
     db = get_db()
-    matches = list(db.matches.find({"month": month}).sort("submitted_at", 1))
+    matches = list(db.matches.find({"month": month}).sort([
+        ("played_date", 1), ("played_time", 1), ("_id", 1),
+    ]))
     rankings = calculate_rankings(matches)
     contributors = calculate_contributors(matches)
     season = db.seasons.find_one({"month": month}) or {"locked": False}

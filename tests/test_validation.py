@@ -1,4 +1,5 @@
 from app.services.validation import match_winner, valid_set_score, validate_match_payload
+import pytest
 
 
 def base_payload():
@@ -34,6 +35,14 @@ def test_valid_completed_match():
     cleaned, errors = validate_match_payload(base_payload())
     assert errors == {}
     assert match_winner(cleaned["sets"]) == "a"
+
+
+@pytest.mark.parametrize("played_time", ["", "24:00", "14:60", "3:14", "invalid"])
+def test_requires_valid_played_time(played_time):
+    payload = base_payload()
+    payload["played_time"] = played_time
+    _, errors = validate_match_payload(payload)
+    assert "played_time" in errors
 
 
 def test_rejects_duplicate_roles_and_wrong_stage_date():

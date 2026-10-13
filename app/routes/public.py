@@ -14,7 +14,9 @@ def month_context(selected=None):
     db = get_db()
     selected = normalize_month(selected or request.args.get("month"), current_month())
     months = available_months(db, selected)
-    matches = list(db.matches.find({"month": selected}).sort("submitted_at", -1))
+    matches = list(db.matches.find({"month": selected}).sort([
+        ("played_date", -1), ("played_time", -1), ("_id", -1),
+    ]))
     rankings = calculate_rankings(matches)
     season = db.seasons.find_one({"month": selected}) or {"month": selected, "locked": False}
     return selected, months, matches, rankings, season

@@ -56,7 +56,7 @@ deploy lại.
 - Vòng bảng ngày 1–21; vòng phân hạng từ ngày 22 đến cuối tháng.
 - Mỗi trận có 2 vận động viên và 2 trọng tài khác nhau.
 - Set đến 15, hòa 14–14 phải hơn 2, trần 17; thắng 2 set là thắng trận.
-- 3 trận vòng bảng hợp lệ đầu tiên của từng người là chính thức; tối đa 5 trận tiếp theo là không chính thức.
+- 3 trận vòng bảng hợp lệ đầu tiên của từng người là chính thức; tối đa 5 trận tiếp theo là không chính thức. Thứ tự lấy theo ngày và giờ thi đấu (`played_date`, `played_time`), không lấy thời gian gửi kết quả. Nếu trùng ngày giờ, dùng ID bản ghi để giữ thứ tự ổn định. Bản ghi cũ thiếu giờ đứng cuối ngày; thiếu hoặc sai ngày giờ đứng cuối danh sách và cần BTC kiểm tra.
 - Trận chính thức: thắng 3 điểm, thua hoàn thành 1 điểm.
 - Trận không chính thức: thắng 3 sao, thua hoàn thành 1 sao.
 - Mỗi trọng tài của trận hợp lệ nhận 1 hoa.

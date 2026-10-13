@@ -70,6 +70,10 @@ def validate_match_payload(data):
     except ValueError:
         errors["played_date"] = "Ngày thi đấu không hợp lệ."
 
+    played_time = str(data.get("played_time", "")).strip()
+    if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", played_time):
+        errors["played_time"] = "Cần nhập giờ thi đấu hợp lệ theo định dạng HH:MM."
+
     if data.get("stage") not in {"group", "final"}:
         errors["stage"] = "Giai đoạn không hợp lệ."
 
@@ -113,7 +117,7 @@ def validate_match_payload(data):
     cleaned = {
         "month": month,
         "played_date": played_date,
-        "played_time": str(data.get("played_time", "")).strip(),
+        "played_time": played_time,
         "stage": data.get("stage"),
         "player_a": player_a,
         "player_b": player_b,

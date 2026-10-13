@@ -29,6 +29,10 @@ def init_indexes():
     db = get_db()
     db.command("ping")
     db.matches.create_index([("month", ASCENDING), ("status", ASCENDING), ("submitted_at", ASCENDING)])
+    db.matches.create_index([
+        ("month", ASCENDING), ("status", ASCENDING),
+        ("played_date", ASCENDING), ("played_time", ASCENDING),
+    ])
     db.matches.create_index([("match_code", ASCENDING)], unique=True, sparse=True)
     db.seasons.create_index([("month", ASCENDING)], unique=True)
     db.audit_logs.create_index([("created_at", DESCENDING)])
