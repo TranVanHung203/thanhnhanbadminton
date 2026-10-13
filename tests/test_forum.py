@@ -289,3 +289,36 @@ def test_notice_feed_database_failure_returns_empty_list(forum, monkeypatch):
     response = client.get("/api/forum/notices")
     assert response.status_code == 503
     assert response.get_json() == {"posts": []}
+
+
+@pytest.mark.parametrize("base_url,secure", [
+    ("http://192.168.2.147:5000", False),
+    ("http://10.0.0.5:5000", False),
+    ("http://127.0.0.1:5000", False),
+    ("http://[::1]:5000", False),
+    ("https://192.168.2.147:5000", True),
+    ("https://example.com", True),
+    ("http://example.com", True),
+])
+def test_owner_cookie_supports_local_http_and_secure_public_site(forum, base_url, secure):
+    client, db, token = forum
+    response = client.get("/dien-dan", base_url=base_url)
+    cookie = next(value for value in response.headers.getlist("Set-Cookie") if value.startswith("forum_owner="))
+    assert ("; Secure" in cookie) == secure
+    assert "HttpOnly" in cookie and "SameSite=Lax" in cookie
+
+
+def test_lan_owner_can_see_and_delete_new_post(forum):
+    client, db, _ = forum
+    base_url = "http://192.168.2.147:5000"
+    client.get("/dien-dan", base_url=base_url)
+    with client.session_transaction(base_url=base_url) as session:
+        token = session["forum_csrf"]
+    response = client.post("/dien-dan", base_url=base_url, data={
+        "csrf_token": token, "author_name": "Hùng", "title": "Hello", "content": "Xin chào",
+    })
+    assert response.status_code == 303
+    thread = response.headers["Location"]
+    assert "Xóa bài đăng" in client.get("/dien-dan", base_url=base_url).get_data(as_text=True)
+    assert "Xóa bài đăng" in client.get(thread, base_url=base_url).get_data(as_text=True)
+    assert client.post(thread + "/xoa", base_url=base_url, data={"csrf_token": token}).status_code == 303

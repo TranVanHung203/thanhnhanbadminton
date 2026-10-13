@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Diễn đàn · Thành Nhân Badminton{% endblock %}
 {% block content %}
-<section class="page-intro section-shell">
+<section class="page-intro section-shell forum-intro">
   <div class="eyebrow"><span></span> CỘNG ĐỒNG THÀNH NHÂN</div>
   <h1>Diễn đàn <em>cầu lông</em></h1>
   <p>Rủ bạn ra sân, chia sẻ kinh nghiệm và trò chuyện sau mỗi trận đấu.</p>
@@ -23,7 +23,7 @@
       </form>
       {% endif %}
     </article>
-    {% else %}{% if not db_error %}<div class="empty-state"><h3>Chưa có bài đăng</h3><p>Hãy mở đầu cuộc trò chuyện với mọi người!</p><a href="#new-post">Viết bài đầu tiên →</a></div>{% endif %}{% endfor %}
+    {% else %}{% if not db_error %}<div class="empty-state forum-empty"><span class="forum-empty-icon" aria-hidden="true">+</span><h3>Chưa có bài đăng</h3><p>Hãy mở đầu cuộc trò chuyện với mọi người!</p><a class="button button-primary" href="#new-post">Viết bài đầu tiên →</a></div>{% endif %}{% endfor %}
     <nav class="forum-pagination" aria-label="Trang bài đăng">
       {% if page > 1 %}<a href="{{ url_for('forum.index', page=page-1) }}">← Trang trước</a>{% endif %}
       <span>Trang {{ page }}</span>

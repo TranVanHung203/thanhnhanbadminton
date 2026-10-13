@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
+from ipaddress import ip_address
 import re
 from secrets import compare_digest, token_urlsafe
+from urllib.parse import urlsplit
 
 from bson import ObjectId
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
@@ -28,7 +30,13 @@ def identify_owner():
 
 @forum_bp.after_request
 def remember_owner(response):
-    local_host = request.host.split(":", 1)[0] in {"localhost", "127.0.0.1"}
+    hostname = urlsplit(request.host_url).hostname or ""
+    local_host = hostname == "localhost"
+    try:
+        address = ip_address(hostname)
+        local_host = address.is_private or address.is_loopback
+    except ValueError:
+        pass
     response.set_cookie(OWNER_COOKIE, g.forum_owner_token, max_age=365 * 24 * 60 * 60,
                         httponly=True, secure=request.is_secure or not local_host,
                         samesite="Lax", path="/dien-dan")
