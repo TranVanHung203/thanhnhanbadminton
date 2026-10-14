@@ -1,0 +1,35 @@
+{% macro match_card(item, referee=false) %}
+{% set match = item.match %}
+<article class="score-card player-match">
+  <header><span>{{ match.match_code|default('Trận đấu', true) }}</span><small>{{ match.played_date }} · {{ match.played_time|default('Chưa có giờ', true) }}</small></header>
+  <div><b>{{ match.player_a }}</b><strong>VS</strong><b>{{ match.player_b }}</b></div>
+  <p>{% for set in match.sets %}<span>{{ set.a }}–{{ set.b }}</span>{% else %}<small>Chưa có tỷ số set</small>{% endfor %}</p>
+  <footer>{% if referee %}<span>{{ 'Vòng bảng' if match.stage == 'group' else 'Vòng phân hạng' }}</span><b>+{{ item.flowers }} hoa</b>{% else %}<span>{{ item.category }} · {{ item.result }}</span><b>+{{ item.points }} điểm · +{{ item.stars }} sao</b>{% endif %}</footer>
+  <dl class="player-match-info"><dt>Trọng tài</dt><dd>{{ match.referee_1|default('—', true) }} · {{ match.referee_2|default('—', true) }}</dd><dt>Trạng thái</dt><dd>Đã duyệt · {{ 'Hoàn thành' if match.result_status == 'completed' else ('Tạm dừng' if match.result_status == 'paused' else 'Bỏ cuộc') }}{% if match.result_status == 'forfeit' %} · {{ 'Lý do phù hợp' if match.forfeit_reason_valid else 'Không có lý do phù hợp' }}{% endif %}</dd>{% if match.notes %}<dt>Ghi chú</dt><dd>{{ match.notes }}</dd>{% endif %}</dl>
+  {% if match.evidence_urls %}<nav class="player-evidence" aria-label="Ảnh minh chứng">{% for url in match.evidence_urls %}{% if url.startswith('https://') or url.startswith('http://') %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer">Minh chứng {{ loop.index }} ↗</a>{% endif %}{% endfor %}</nav>{% endif %}
+</article>
+{% endmacro %}
+
+<dialog id="player-details-dialog" class="player-details-dialog" aria-labelledby="player-details-title">
+  <form method="dialog" class="player-dialog-close"><button type="submit" aria-label="Đóng chi tiết">Đóng ✕</button></form>
+  <div data-player-details-content></div>
+</dialog>
+{% for profile in player_details %}
+{% set row = profile.summary %}
+<template data-player-profile="{{ loop.index0 }}">
+  <header class="player-profile-header"><small>CHI TIẾT VẬN ĐỘNG VIÊN · THÁNG {{ month[5:7] }}/{{ month[:4] }}</small><h2 id="player-details-title">{{ row.name }}</h2><p>Hạng {{ row.rank }} · {{ 'Kết quả chính thức' if season.locked else 'Kết quả tạm thời' }}</p></header>
+  <dl class="player-stat-grid">
+    {% for label, value in [('Trận chính thức', row.official_matches|string + '/3'), ('Thắng CT', row.official_wins), ('Thua CT', row.official_losses), ('Điểm chính thức', row.official_points), ('Trận không chính thức', row.unofficial_matches|string + '/5'), ('Sao', row.stars), ('Hoa đồng hành', row.flowers), ('Trận phân hạng', row.final_matches), ('Thắng phân hạng', row.final_wins), ('Điểm phân hạng', row.final_points), ('Tổng điểm', row.total_points)] %}
+    <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+    {% endfor %}
+  </dl>
+  {% if row.award_note %}<p class="player-profile-note">{{ row.award_note }}</p>{% endif %}
+  <h3>Giải thưởng và danh hiệu</h3>
+  {% for award in profile.awards %}<p class="player-profile-note"><b>{{ award.title }}</b> · {{ "{:,}".format(award.prize).replace(",", ".") }}đ · {{ award.status }}</p>{% else %}<p class="table-note">Chưa có giải thưởng hoặc danh hiệu.</p>{% endfor %}
+  <h3>Lịch sử thi đấu ({{ profile.matches|length }} trận)</h3>
+  <div class="matches-grid">{% for item in profile.matches %}{{ match_card(item) }}{% else %}<p class="table-note">Chưa có trận thi đấu được duyệt.</p>{% endfor %}</div>
+  <h3>Các trận làm trọng tài ({{ profile.refereeing|length }} trận)</h3>
+  <div class="matches-grid">{% for item in profile.refereeing %}{{ match_card(item, true) }}{% else %}<p class="table-note">Chưa có trận làm trọng tài được duyệt.</p>{% endfor %}</div>
+  <p class="table-note">Hiển thị toàn bộ trận đã duyệt trong tháng đang chọn, bao gồm trận không tính điểm. Tỷ số set theo thứ tự hai tên trên mỗi thẻ trận.</p>
+</template>
+{% endfor %}

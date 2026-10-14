@@ -221,6 +221,56 @@ def _apply_achievement_decisions(rows, decisions):
             row["award_note"] = "Cần bốc thăm công khai để chọn đủ số lượng Giải Ba."
 
 
+def calculate_player_details(matches, rankings, awards):
+    """Chi tiết công khai theo tháng, dùng cùng thứ tự và quy tắc tính BXH."""
+    profiles = {identity(row["name"]): {"summary": row, "matches": [], "refereeing": [], "awards": []}
+                for row in rankings}
+    appearance = defaultdict(int)
+    for match in sorted(matches, key=match_play_order):
+        if match.get("status") != "approved":
+            continue
+        countable = _is_countable(match)
+        winner = _winner(match)
+        for side in ("a", "b"):
+            key = identity(match.get(f"player_{side}"))
+            category, points, stars = "Không tính điểm", 0, 0
+            value = 3 if winner == side else (1 if match.get("result_status") == "completed" else 0)
+            if countable:
+                if match.get("stage") == "final":
+                    category, points = "Vòng phân hạng", value
+                else:
+                    appearance[key] += 1
+                    if appearance[key] <= 3:
+                        category, points = "Chính thức", value
+                    elif appearance[key] <= 8:
+                        category, stars = "Không chính thức", value
+                    else:
+                        category = "Vượt số trận tính điểm"
+            if key in profiles:
+                result = "Thắng" if winner == side else "Thua"
+                if match.get("result_status") == "paused":
+                    result = "Tạm dừng"
+                elif match.get("result_status") == "forfeit":
+                    result = ("Bỏ cuộc" if match.get("forfeit_side") == side else "Đối thủ bỏ cuộc")
+                profiles[key]["matches"].append({"match": match, "category": category,
+                                                 "result": result, "points": points, "stars": stars})
+        for referee in (match.get("referee_1"), match.get("referee_2")):
+            key = identity(referee)
+            if key in profiles:
+                profiles[key]["refereeing"].append({"match": match, "flowers": int(countable)})
+    for group in (awards["achievement"], awards["attitude"]):
+        for award in group["items"]:
+            for field, label in (("recipients", awards["status_label"]), ("candidates", "Chờ phân định")):
+                for person in award[field]:
+                    key = identity(person["name"])
+                    if key in profiles:
+                        profiles[key]["awards"].append({"title": award["title"], "prize": award["prize"], "status": label})
+    for profile in profiles.values():
+        profile["matches"].reverse()
+        profile["refereeing"].reverse()
+    return list(profiles.values())
+
+
 def calculate_rankings(matches):
     rows = {}
     appearance = defaultdict(int)

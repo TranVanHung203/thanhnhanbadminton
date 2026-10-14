@@ -3,7 +3,7 @@ from pathlib import Path
 from flask import Blueprint, abort, current_app, render_template, request, send_file
 
 from ..db import get_db
-from ..services.ranking import calculate_awards, calculate_contributors, calculate_rankings, summarize
+from ..services.ranking import calculate_awards, calculate_contributors, calculate_player_details, calculate_rankings, summarize
 from ..services.seasons import available_months, current_month, normalize_month
 
 
@@ -83,6 +83,7 @@ def results():
     return render_template(
         "results.html", month=month, months=months, matches=approved,
         rankings=rankings, contributors=contributors, awards=awards, season=season,
+        player_details=calculate_player_details(matches, rankings, awards),
     )
 
 

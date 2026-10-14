@@ -2,6 +2,24 @@ const menuButton = document.querySelector('[data-menu-button]');
 const menu = document.querySelector('[data-menu]');
 menuButton?.addEventListener('click', () => menu.classList.toggle('open'));
 
+const playerDetailsDialog = document.querySelector('#player-details-dialog');
+document.querySelectorAll('[data-player-details]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const profile = document.querySelector(`[data-player-profile="${button.dataset.playerDetails}"]`);
+    if (!profile || !playerDetailsDialog) return;
+    playerDetailsDialog.querySelector('[data-player-details-content]').replaceChildren(profile.content.cloneNode(true));
+    playerDetailsDialog.showModal();
+    playerDetailsDialog.scrollTop = 0;
+  });
+});
+playerDetailsDialog?.addEventListener('click', (event) => {
+  if (event.target !== playerDetailsDialog) return;
+  const bounds = playerDetailsDialog.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) {
+    playerDetailsDialog.close();
+  }
+});
+
 document.querySelectorAll('[data-tabs]').forEach((tabs) => {
   const activateTab = (button) => {
     if (!button) return;
