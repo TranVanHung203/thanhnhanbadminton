@@ -3,11 +3,11 @@ from functools import wraps
 from secrets import choice
 
 from bson import ObjectId
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 
 from ..db import get_db
 from ..services.ranking import calculate_awards, calculate_contributors, calculate_rankings, summarize
-from ..services.seasons import available_months, current_month, normalize_month
+from ..services.seasons import active_month, advance_season, available_months, normalize_month
 from ..services.validation import identity
 from ..services.google_drive import (
     create_authorization_flow,
@@ -68,7 +68,7 @@ def logout():
 @admin_required
 def dashboard():
     db = get_db()
-    month = normalize_month(request.args.get("month"), current_month())
+    month = normalize_month(request.args.get("month"), active_month(db))
     status = request.args.get("status", "all")
     query = {"month": month}
     if status in {"pending", "approved", "rejected"}:
@@ -91,7 +91,7 @@ def dashboard():
 
 
 def award_snapshot(db, month):
-    month = normalize_month(month, current_month())
+    month = normalize_month(month, active_month(db))
     matches = list(db.matches.find({"month": month}).sort("submitted_at", 1))
     rankings = calculate_rankings(matches)
     contributors = calculate_contributors(matches)
@@ -108,7 +108,7 @@ def award_snapshot(db, month):
 @admin_required
 def draw_awards():
     db = get_db()
-    month = normalize_month(request.args.get("month"), current_month())
+    month = normalize_month(request.args.get("month"), active_month(db))
     season, matches, rankings, contributors, awards = award_snapshot(db, month)
     return render_template(
         "admin/draw.html",
@@ -162,9 +162,9 @@ def _save_draw_decision(db, month, season, task, winner, method):
 @admin_required
 def spin_award_draw():
     payload = request.get_json(silent=True) or {}
-    month = normalize_month(payload.get("month"), current_month())
-    draw_key = str(payload.get("draw_key", ""))
     db = get_db()
+    month = normalize_month(payload.get("month"), active_month(db))
+    draw_key = str(payload.get("draw_key", ""))
     season, _, _, _, awards = award_snapshot(db, month)
     task = _find_draw_task(awards, draw_key)
     if not task or not task.get("candidates"):
@@ -184,10 +184,10 @@ def spin_award_draw():
 @admin_bp.post("/boc-tham/chon")
 @admin_required
 def choose_award_manually():
-    month = normalize_month(request.form.get("month"), current_month())
+    db = get_db()
+    month = normalize_month(request.form.get("month"), active_month(db))
     draw_key = str(request.form.get("draw_key", ""))
     requested_winner = str(request.form.get("winner", "")).strip()
-    db = get_db()
     season, _, _, _, awards = award_snapshot(db, month)
     task = _find_draw_task(awards, draw_key)
     winner = next(
@@ -206,12 +206,12 @@ def choose_award_manually():
 @admin_bp.post("/boc-tham/xoa")
 @admin_required
 def reset_award_draw():
-    month = normalize_month(request.form.get("month"), current_month())
+    db = get_db()
+    month = normalize_month(request.form.get("month"), active_month(db))
     draw_key = str(request.form.get("draw_key", ""))
     if draw_key not in DRAW_DECISION_KEYS:
         flash("Hạng mục phân định không hợp lệ.", "error")
         return redirect(url_for("admin.draw_awards", month=month))
-    db = get_db()
     season = db.seasons.find_one({"month": month}) or {}
     decisions = dict(season.get("award_decisions", {}))
     decisions.pop(draw_key, None)
@@ -347,6 +347,11 @@ def delete(match_id):
 @admin_required
 def toggle_lock(month):
     db = get_db()
+    if normalize_month(month) != month:
+        abort(400)
+    active = active_month(db)
+    if month > active:
+        abort(409)
     current = db.seasons.find_one({"month": month}) or {}
     locked = not current.get("locked", False)
     db.seasons.update_one(
@@ -355,5 +360,10 @@ def toggle_lock(month):
         upsert=True,
     )
     log_action("lock_season" if locked else "unlock_season", details=month)
+    if locked and month == active:
+        following = advance_season(db, month)
+        if following:
+            flash(f"Đã khóa mùa giải {month} và chuyển sang mùa giải {following}.", "success")
+            return redirect(url_for("admin.dashboard", month=following))
     flash(f"Đã {'khóa' if locked else 'mở'} mùa giải {month}.", "success")
     return redirect(request.referrer or url_for("admin.dashboard", month=month))

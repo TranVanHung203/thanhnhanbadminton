@@ -10,15 +10,15 @@
 <section class="section-shell narrow form-layout">
   <form id="match-form" class="result-form" novalidate>
     <div class="form-section">
-      <div class="form-section-title"><span>01</span><div><h2>Thông tin trận đấu</h2><p>Chọn đúng tháng và giai đoạn thi đấu.</p></div></div>
+      <div class="form-section-title"><span>01</span><div><h2>Thông tin trận đấu</h2><p>Mùa giải chỉ chuyển sang tháng kế tiếp khi BTC khóa mùa hiện tại. Ngày thi đấu có thể sang tháng sau.</p></div></div>
       <div class="form-grid three">
-        <label><span>Tháng giải đấu</span><input type="month" name="month" value="{{ month }}" required></label>
+        <label><span>Tháng giải đấu</span><input type="month" name="month" value="{{ month }}" readonly required></label>
         <label><span>Ngày thi đấu</span><input type="date" name="played_date" required></label>
         <label><span>Giờ thi đấu</span><input type="time" name="played_time" required></label>
       </div>
       <div class="segmented">
-        <label><input type="radio" name="stage" value="group" checked><span><b>Vòng bảng</b><small>Ngày 01–21</small></span></label>
-        <label><input type="radio" name="stage" value="final"><span><b>Vòng phân hạng</b><small>Từ ngày 22</small></span></label>
+        <label><input type="radio" name="stage" value="group" checked><span><b>Vòng bảng</b><small>Ngày 01–21, có thể kéo dài sang tháng sau</small></span></label>
+        <label><input type="radio" name="stage" value="final"><span><b>Vòng phân hạng</b><small>Từ ngày 22 của tháng bắt đầu mùa giải</small></span></label>
       </div>
     </div>
 

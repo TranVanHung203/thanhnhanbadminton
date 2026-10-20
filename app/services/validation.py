@@ -60,12 +60,13 @@ def validate_match_payload(data):
     played_date = str(data.get("played_date", ""))
     try:
         played = datetime.strptime(played_date, "%Y-%m-%d")
-        if month and played.strftime("%Y-%m") != month:
-            errors["played_date"] = "Ngày thi đấu phải thuộc tháng đã chọn."
+        played_month = played.strftime("%Y-%m")
+        if month and played_month < month:
+            errors["played_date"] = "Ngày thi đấu không được trước tháng bắt đầu mùa giải."
         stage = data.get("stage")
-        if stage == "group" and played.day > 21:
+        if played_month == month and stage == "group" and played.day > 21:
             errors["played_date"] = "Vòng bảng chỉ nhận trận từ ngày 1 đến ngày 21."
-        if stage == "final" and played.day < 22:
+        if played_month == month and stage == "final" and played.day < 22:
             errors["played_date"] = "Vòng phân hạng bắt đầu từ ngày 22."
     except ValueError:
         errors["played_date"] = "Ngày thi đấu không hợp lệ."

@@ -8,7 +8,7 @@ from flask import url_for
 
 from ..db import get_db
 from ..services.ranking import calculate_awards, calculate_contributors, calculate_rankings, summarize
-from ..services.seasons import current_month, normalize_month
+from ..services.seasons import active_month, normalize_month
 from ..services.validation import identity, validate_match_payload
 from ..services.google_drive import (
     DriveNotConnected,
@@ -99,6 +99,8 @@ def create_match():
         return jsonify({"ok": False, "errors": errors}), 422
 
     db = get_db()
+    if cleaned["month"] > active_month(db):
+        return jsonify({"ok": False, "message": "Mùa giải này chưa mở. Ban Tổ chức cần khóa mùa hiện tại trước."}), 409
     season = db.seasons.find_one({"month": cleaned["month"]})
     if season and season.get("locked"):
         return jsonify({"ok": False, "message": "Tháng này đã khóa nhận kết quả."}), 423
@@ -126,8 +128,8 @@ def create_match():
 
 @api_bp.get("/results")
 def get_results():
-    month = normalize_month(request.args.get("month"), current_month())
     db = get_db()
+    month = normalize_month(request.args.get("month"), active_month(db))
     matches = list(db.matches.find({"month": month}).sort([
         ("played_date", 1), ("played_time", 1), ("_id", 1),
     ]))

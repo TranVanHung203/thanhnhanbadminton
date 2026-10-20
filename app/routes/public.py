@@ -4,7 +4,7 @@ from flask import Blueprint, abort, current_app, render_template, request, send_
 
 from ..db import get_db
 from ..services.ranking import calculate_awards, calculate_contributors, calculate_player_details, calculate_rankings, summarize
-from ..services.seasons import available_months, current_month, normalize_month
+from ..services.seasons import active_month, available_months, current_month, normalize_month
 
 
 public_bp = Blueprint("public", __name__)
@@ -12,7 +12,7 @@ public_bp = Blueprint("public", __name__)
 
 def month_context(selected=None):
     db = get_db()
-    selected = normalize_month(selected or request.args.get("month"), current_month())
+    selected = normalize_month(selected or request.args.get("month"), active_month(db))
     months = available_months(db, selected)
     matches = list(db.matches.find({"month": selected}).sort([
         ("played_date", -1), ("played_time", -1), ("_id", -1),
@@ -53,11 +53,12 @@ def social_preview():
 
 @public_bp.route("/nhap-ket-qua")
 def submit_result():
-    month = normalize_month(request.args.get("month"), current_month())
-    try:
-        season = get_db().seasons.find_one({"month": month}) or {"locked": False}
-    except Exception:
-        season = {"locked": False}
+    db = get_db()
+    active = active_month(db)
+    month = normalize_month(request.args.get("month"), active)
+    if month > active:
+        abort(409)
+    season = db.seasons.find_one({"month": month}) or {"locked": False}
     if season.get("locked"):
         abort(423)
     return render_template(

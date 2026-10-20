@@ -59,3 +59,21 @@ def test_rejects_unnecessary_third_set():
     payload.update({"set1_a": 15, "set1_b": 9, "set2_a": 15, "set2_b": 8, "set3_a": 15, "set3_b": 7})
     _, errors = validate_match_payload(payload)
     assert "sets" in errors
+
+
+@pytest.mark.parametrize("stage,played_date", [
+    ("group", "2026-10-25"),
+    ("final", "2026-10-02"),
+    ("final", "2027-01-01"),
+])
+def test_open_season_can_extend_into_later_months(stage, played_date):
+    payload = {**base_payload(), "stage": stage, "played_date": played_date}
+    cleaned, errors = validate_match_payload(payload)
+    assert errors == {}
+    assert cleaned["month"] == "2026-09"
+    assert cleaned["played_date"] == played_date
+
+
+def test_rejects_match_before_season_start():
+    _, errors = validate_match_payload({**base_payload(), "played_date": "2026-08-20"})
+    assert "played_date" in errors

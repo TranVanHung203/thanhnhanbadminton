@@ -5,7 +5,7 @@
 - Người tham gia gửi kết quả và minh chứng trận đấu.
 - Mọi người xem trận đã duyệt, bảng xếp hạng, điểm, sao và hoa.
 - Ban Tổ chức duyệt/từ chối/xóa bản ghi và khóa từng mùa giải.
-- Tháng hiện tại tự động trở thành mùa giải mặc định; các tháng cũ vẫn có trong bộ lọc lịch sử.
+- Mùa giải hiện tại được lưu cố định, không tự chuyển theo lịch. Chỉ khi BTC bấm **Khóa mùa giải** của mùa hiện tại, hệ thống mới chuyển sang tháng liền kề (kể cả tháng 12 sang tháng 1 năm sau). Các mùa cũ vẫn có trong lịch sử; mở lại hoặc khóa lại mùa cũ không đổi mùa hiện tại.
 - Tự động thống kê cơ cấu thưởng thành tích và ba danh hiệu thưởng thái độ theo từng tháng.
 - Diễn đàn `/dien-dan`: đăng bài và bình luận công khai, bắt buộc nhập tên; không cần tài khoản.
 
@@ -76,7 +76,7 @@ deploy lại.
 
 ## Quy tắc đã mã hóa
 
-- Vòng bảng ngày 1–21; vòng phân hạng từ ngày 22 đến cuối tháng.
+- Trong tháng bắt đầu mùa giải: vòng bảng ngày 1–21, vòng phân hạng từ ngày 22. Mùa chưa khóa có thể tiếp tục thi đấu cả hai giai đoạn sang tháng sau; ngày thi đấu thực tế được giữ nguyên và kết quả vẫn tính cho mùa đó.
 - Mỗi trận có 2 vận động viên và 2 trọng tài khác nhau.
 - Set đến 15, hòa 14–14 phải hơn 2, trần 17; thắng 2 set là thắng trận.
 - 3 trận vòng bảng hợp lệ đầu tiên của từng người là chính thức; tối đa 5 trận tiếp theo là không chính thức. Thứ tự lấy theo ngày và giờ thi đấu (`played_date`, `played_time`), không lấy thời gian gửi kết quả. Nếu trùng ngày giờ, dùng ID bản ghi để giữ thứ tự ổn định. Bản ghi cũ thiếu giờ đứng cuối ngày; thiếu hoặc sai ngày giờ đứng cuối danh sách và cần BTC kiểm tra.
