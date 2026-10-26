@@ -294,3 +294,40 @@ def test_saved_manual_star_decision_resolves_tie():
     )
     star = next(item for item in after["attitude"]["items"] if item["key"] == "active_star")
     assert star["recipients"][0]["name"] == "C"
+
+
+def test_flower_award_waits_only_for_overlapping_star_candidates():
+    rankings = [
+        {"name": name, "rank": index, "award": "", "award_status": "",
+         "award_note": "", "unofficial_completed": 5, "stars": 15}
+        for index, name in enumerate(("A", "B"), 1)
+    ]
+    contributors = [{"name": "Referee", "flowers": 38}, {"name": "A", "flowers": 22}]
+    awards = calculate_awards([], rankings, contributors)
+    assert awards["attitude"]["items"][1]["status"] == "draw"
+    flower = awards["attitude"]["items"][2]
+    assert flower["status"] == "winner"
+    assert flower["recipients"] == [{"name": "Referee", "flowers": 38}]
+    assert not awards["finalized"]
+
+    contributors[1]["flowers"] = 40
+    awards = calculate_awards([], rankings, contributors)
+    assert awards["attitude"]["items"][2]["status"] == "waiting"
+    for selected, expected in (("A", "Referee"), ("B", "A")):
+        awards = calculate_awards([], rankings, contributors, decisions={"active_star": selected})
+        assert awards["attitude"]["items"][2]["recipients"][0]["name"] == expected
+
+    contributors[1]["flowers"] = 38
+    assert calculate_awards([], rankings, contributors)["attitude"]["items"][2]["status"] == "waiting"
+    contributors[1]["name"] = "Other referee"
+    awards = calculate_awards([], rankings, contributors)
+    assert awards["attitude"]["items"][2]["status"] == "draw"
+
+
+def test_referee_only_flower_leader_can_win_while_head_to_head_waits():
+    rankings = calculate_rankings([make_match(1, "A", "B"), make_match(2, "C", "D")])
+    awards = calculate_awards([], rankings, [{"name": "Referee", "flowers": 10}])
+    assert awards["attitude"]["items"][0]["status"] == "waiting"
+    assert awards["attitude"]["items"][2]["status"] == "winner"
+    awards = calculate_awards([], rankings, [{"name": "A", "flowers": 10}])
+    assert awards["attitude"]["items"][2]["status"] == "waiting"

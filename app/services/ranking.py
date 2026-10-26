@@ -646,7 +646,7 @@ def _active_star_statistics(rankings, excluded, blocked=False, decided_name=None
     return config
 
 
-def _active_flower_statistics(contributors, excluded, blocked=False, decided_name=None):
+def _active_flower_statistics(contributors, excluded, blocked=False, decided_name=None, pending_names=None):
     config = dict(ATTITUDE_AWARDS[2])
     if blocked:
         return _waiting_attitude_item(config, "Chờ xác định các danh hiệu thái độ trước.")
@@ -659,6 +659,8 @@ def _active_flower_statistics(contributors, excluded, blocked=False, decided_nam
         return config
     top_flowers = max(item["flowers"] for item in eligible)
     leaders = [item for item in eligible if item["flowers"] == top_flowers]
+    if any(identity(item["name"]) in (pending_names or set()) for item in leaders):
+        return _waiting_attitude_item(config, "Chờ phân định danh hiệu thái độ trước vì người dẫn đầu hoa còn có thể nhận danh hiệu đó.")
     summaries = [{"name": item["name"], "flowers": item["flowers"]} for item in leaders]
     if len(leaders) > 1:
         decided = next(
@@ -737,10 +739,16 @@ def calculate_awards(matches, rankings=None, contributors=None, *, locked=False,
         rankings, excluded, blocked=head_blocked, decided_name=decisions.get("active_star")
     )
     excluded.update(identity(item["name"]) for item in active_star.get("recipients", []))
-    star_blocked = head_blocked or active_star["status"] in {"waiting", "draw"}
+    # Only defer flowers when a current leader could receive an earlier award.
+    # While achievement rankings are unresolved, any player may still qualify
+    # for head-to-head; referee-only contributors cannot receive that award.
+    pending_names = {identity(row["name"]) for row in rankings} if head_blocked else set()
+    if active_star["status"] == "draw":
+        pending_names.update(identity(item["name"]) for item in active_star["candidates"])
 
     active_flower = _active_flower_statistics(
-        contributors, excluded, blocked=star_blocked, decided_name=decisions.get("active_flower")
+        contributors, excluded, decided_name=decisions.get("active_flower"),
+        pending_names=pending_names,
     )
     attitude_items = [head_to_head, active_star, active_flower]
     attitude_allocated = sum(
